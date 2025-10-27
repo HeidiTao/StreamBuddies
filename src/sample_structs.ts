@@ -35,7 +35,7 @@ export interface GenreDoc {
 // ---------- Content (movie/show) ----------
 export interface ContentDoc {
   title: string;
-  description: string;
+  overview: string;
   type: ContentType;                 // "movie" | "show"
   genres: ID[];                      // refs to /genres/{genreId}
   language: string;                  // e.g., "en"

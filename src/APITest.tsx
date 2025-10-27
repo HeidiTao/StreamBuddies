@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { Touchable, TouchableOpacity, View, Text, ScrollView, TextInput } from "react-native";
 // import TMDB_READ_TOKEN from "@env";
 import { db } from "../config/firebase";
+import { ContentDoc } from "./sample_structs";
 
 const APITest: React.FC = () =>  {
-    const [movie, setMovie] = useState(null);
+    const [movie, setMovie] = useState<ContentDoc>(null);
     const [mvID, setMvID] = useState(11);
 
     const tmdb_token = process.env.EXPO_PUBLIC_TMDB_READ_TOKEN;
