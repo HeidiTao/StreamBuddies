@@ -4,9 +4,11 @@ In the era of streaming, the simple question “What should we watch?” has bec
 
 ---
 
-# To be part of this project:
+# To contribute to this project:
 
-1. Git clone the repository to your local machine or run `git pull` to get the updates
-2. Run `npm install` to install or update dependencies
-3. Run `npm start` to start the server
-4. If you've recently opened the app, open the **Expo Go** App on your mobile device and find **StreamBuddies**. Or, scan the QR code that appeared in your terminal to load the app.
+1. Git clone the repository to your local machine or run `git pull` to get the updates.
+2. Run `npm install` to install or update dependencies.
+
+# To try out the app!
+3. Run `npm start` to start the server.
+4. If you've recently opened the app, open the **Expo Go** App on your mobile device and find **StreamBuddies**. Or, scan the QR code that appeared in your terminal to load the app. All edits to code will be shown live on the mobile device.
