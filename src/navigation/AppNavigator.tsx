@@ -16,6 +16,7 @@ import ProfileView from "../screens/ProfileView";
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
 
+// MARK: Stacks+Screens
 const ExploreStackScreen = () => {
   return ( 
     <Stack.Navigator>
@@ -93,7 +94,7 @@ const ProfileStackScreen = () => {
   )
 }
 
-
+// MARK: Tabs
 const AppNavigator: React.FC = () => {
   return (
     <NavigationContainer>
@@ -120,7 +121,7 @@ const AppNavigator: React.FC = () => {
           tabBarInactiveTintColor: 'gray',
         })}>
           <Tab.Screen name='ExploreTab' component={ExploreStackScreen} />
-          <Tab.Screen name='SearchTab' component={SearchView}/>
+          <Tab.Screen name='SearchTab' component={SearchStackScreen}/>
           <Tab.Screen name='ListsTab' component={ListsStackScreen} />
           <Tab.Screen name='GroupsTab' component={GroupsStackScreen} />
           <Tab.Screen name='ProfileTab' component={ProfileStackScreen} />
