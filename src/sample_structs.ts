@@ -41,7 +41,8 @@ export interface ContentDoc {
   language: string;                  // e.g., "en"
   release_date: TimestampMs;         // or Firestore Timestamp
   release_year?: number;             // denorm for filters/sorts
-  cover_image_url?: string;
+  // cover_image_url?: string;
+  poster_path?: number;
   tmdb_id?: number;                  // optional future integration
   created_at?: TimestampMs;
   updated_at?: TimestampMs;
@@ -76,23 +77,28 @@ export interface HistoryEntryDoc {
 // ---------- Watchlists (per user, optionally shared to a group) ----------
 
 export interface WatchlistDoc {
+  id?: string;
   name: string;
   owner_user_id: ID;
   visibility: WatchlistVisibility;   // "private" | "shared"
+  description?: string;
   group_id?: ID;                     // /groups/{groupId} if shared
   created_at: TimestampMs;
   updated_at: TimestampMs;
-  item_count?: number;               // denorm
-  preview_covers?: string[];         // denorm
+  item_count: number;               // denorm
+  preview_covers: string[];         // denorm
+  items: WatchlistItemDoc[];
 }
 
 export interface WatchlistItemDoc {
-  content_id: ID;                    // /content/{id}
+  tmdb_id: ID; // content_id: ID;                    // /content/{id}
   added_at: TimestampMs;
+  added_by: ID;
+  notes: string;
   // denorm for fast list rendering
-  content_title?: string;
-  cover_image_url?: string;
-  content_type?: ContentType;
+  // content_title?: string;
+  // cover_image_url?: string;
+  // content_type?: ContentType;
 }
 
 // ---------- Groups ----------

@@ -8,8 +8,9 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { RootStackParamList } from "./types";
 import ExploreView from "../screens/ExploreView";
 import SearchView from "../screens/SearchView";
-import ListsView from "../screens/ListsView";
-import ListView from "../screens/ListView";
+import ListsView from "../screens/Lists/ListsView";
+import ListDetailView from "../screens/Lists/ListDetailView";
+import NewListView from "../screens/Lists/NewListView";
 import GroupsView from "../screens/GroupsView";
 import ProfileView from "../screens/ProfileView";
 
@@ -57,9 +58,16 @@ const ListsStackScreen = () => {
       />
       <Stack.Screen
         name="ListDetail"
-        component={ListView}
+        component={ListDetailView}
         options={{
           title: 'List Detail'
+        }}
+      />
+      <Stack.Screen
+        name="NewList"
+        component={NewListView}
+        options={{
+          title: 'New List'
         }}
       />
     </Stack.Navigator>
