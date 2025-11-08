@@ -1,3 +1,5 @@
+import { WatchlistDoc } from "../sample_structs";
+
 // navigation parameters passed between pages
 export type RootStackParamList = {
     Explore: undefined;
@@ -6,8 +8,9 @@ export type RootStackParamList = {
 
     Lists: undefined;
     ListDetail: {
-        ListID: number;
+        list: WatchlistDoc
     };
+    NewList: undefined;
     
     Groups: undefined;
     Profile: undefined;
