@@ -1,20 +1,18 @@
-import { View, Text } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { RootStackParamList } from "../navigation/types";
+// src/screens/ExploreView.tsx
 import React from "react";
-
-type ExploreViewNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Explore'>
+import { View, StyleSheet } from "react-native";
+import ExploreSwiper from "./Swipe/ExploreSwiper";
 
 const ExploreView: React.FC = () => {
-
   return (
-    <View>
-      <Text> Explore View placeholder </Text>
+    <View style={styles.container}>
+      <ExploreSwiper />
     </View>
   );
-
-
 };
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#000" },
+});
 
 export default ExploreView;

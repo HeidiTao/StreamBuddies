@@ -1,12 +1,13 @@
+// src/navigation/AppNavigator.tsx
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import Icon from 'react-native-vector-icons/Ionicons';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from "@expo/vector-icons";
 
 import { RootStackParamList } from "./types";
 import ExploreView from "../screens/ExploreView";
+import MovieDetailView from "../screens/MovieDetailView";
 import SearchView from "../screens/SearchView";
 import ListsView from "../screens/Lists/ListsView";
 import ListDetailView from "../screens/Lists/ListDetailView";
@@ -19,88 +20,60 @@ const Tab = createBottomTabNavigator();
 
 // MARK: Stacks+Screens
 const ExploreStackScreen = () => {
-  return ( 
+  return (
     <Stack.Navigator>
       <Stack.Screen
         name="Explore"
         component={ExploreView}
-        options={{
-          title: 'Popular this week!'
-        }}
+        options={{ title: "Popular this week!" }}
+      />
+      {/* 👇 Add the details screen here */}
+      <Stack.Screen
+        name="MovieDetail"
+        component={MovieDetailView}
+        options={{ title: "Details" }}
       />
     </Stack.Navigator>
-  )
-}
+  );
+};
 
 const SearchStackScreen = () => {
-  return ( 
+  return (
     <Stack.Navigator>
       <Stack.Screen
         name="Search"
         component={SearchView}
-        options={{
-          title: 'What do you want to watch?'
-        }}
+        options={{ title: "What do you want to watch?" }}
       />
     </Stack.Navigator>
-  )
-}
+  );
+};
 
 const ListsStackScreen = () => {
-  return ( 
+  return (
     <Stack.Navigator>
-      <Stack.Screen
-        name="Lists"
-        component={ListsView}
-        options={{
-          title: 'My Lists'
-        }}
-      />
-      <Stack.Screen
-        name="ListDetail"
-        component={ListDetailView}
-        options={{
-          title: 'List Detail'
-        }}
-      />
-      <Stack.Screen
-        name="NewList"
-        component={NewListView}
-        options={{
-          title: 'New List'
-        }}
-      />
+      <Stack.Screen name="Lists" component={ListsView} options={{ title: "My Lists" }} />
+      <Stack.Screen name="ListDetail" component={ListDetailView} options={{ title: "List Detail" }} />
+      <Stack.Screen name="NewList" component={NewListView} options={{ title: "New List" }} />
     </Stack.Navigator>
-  )
-}
+  );
+};
 
 const GroupsStackScreen = () => {
-  return ( 
+  return (
     <Stack.Navigator>
-      <Stack.Screen
-        name="Groups"
-        component={GroupsView}
-        options={{
-          title: 'My Groups'
-        }}
-      />
+      <Stack.Screen name="Groups" component={GroupsView} options={{ title: "My Groups" }} />
     </Stack.Navigator>
-  )
-}
+  );
+};
 
 const ProfileStackScreen = () => {
-  return ( 
+  return (
     <Stack.Navigator>
-      <Stack.Screen
-        name="Profile"
-        component={ProfileView}
-        options={{
-          title: 'My Profile'
-        }}
-      />
+      <Stack.Screen name="Profile" component={ProfileView} options={{ title: "My Profile" }} />
     </Stack.Navigator>
-  )
-}
+  );
+};
 
 // MARK: Tabs
 const AppNavigator: React.FC = () => {
@@ -108,32 +81,27 @@ const AppNavigator: React.FC = () => {
     <NavigationContainer>
       <Tab.Navigator
         initialRouteName="ExploreTab"
-        screenOptions= {({ route }) => ({
+        screenOptions={({ route }) => ({
           tabBarIcon: ({ color, size }) => {
-            let iconName;
-            if (route.name === 'ExploreTab') {
-              iconName = 'balloon';
-            } else if (route.name === 'SearchTab') {
-              iconName = 'search';
-            } else if (route.name === 'ListsTab') {
-              iconName = 'bookmarks';
-            } else if (route.name === 'GroupsTab') {
-              iconName = 'people-circle';
-            } else if (route.name === 'ProfileTab') {
-              iconName = 'person';
-            }
+            let iconName: keyof typeof Ionicons.glyphMap = "ellipse";
+            if (route.name === "ExploreTab") iconName = "balloon";
+            else if (route.name === "SearchTab") iconName = "search";
+            else if (route.name === "ListsTab") iconName = "bookmarks";
+            else if (route.name === "GroupsTab") iconName = "people-circle";
+            else if (route.name === "ProfileTab") iconName = "person";
             return <Ionicons name={iconName} size={size} color={color} />;
           },
           headerShown: false,
-          tabBarActiveTintColor: 'black',
-          tabBarInactiveTintColor: 'gray',
-        })}>
-          <Tab.Screen name='ExploreTab' component={ExploreStackScreen} />
-          <Tab.Screen name='SearchTab' component={SearchStackScreen}/>
-          <Tab.Screen name='ListsTab' component={ListsStackScreen} />
-          <Tab.Screen name='GroupsTab' component={GroupsStackScreen} />
-          <Tab.Screen name='ProfileTab' component={ProfileStackScreen} />
-        </Tab.Navigator>
+          tabBarActiveTintColor: "black",
+          tabBarInactiveTintColor: "gray",
+        })}
+      >
+        <Tab.Screen name="ExploreTab" component={ExploreStackScreen} options={{ title: "Explore" }} />
+        <Tab.Screen name="SearchTab" component={SearchStackScreen} options={{ title: "Search" }} />
+        <Tab.Screen name="ListsTab" component={ListsStackScreen} options={{ title: "Lists" }} />
+        <Tab.Screen name="GroupsTab" component={GroupsStackScreen} options={{ title: "Groups" }} />
+        <Tab.Screen name="ProfileTab" component={ProfileStackScreen} options={{ title: "Profile" }} />
+      </Tab.Navigator>
     </NavigationContainer>
   );
 };
