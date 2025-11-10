@@ -1,4 +1,4 @@
-import { WatchlistDoc } from "../sample_structs";
+import { WatchlistDoc, GroupDoc } from "../sample_structs";
 
 // navigation parameters passed between pages
 export type RootStackParamList = {
@@ -14,5 +14,10 @@ export type RootStackParamList = {
     NewList: undefined;
     
     Groups: undefined;
+    GroupDetail: {
+        group: GroupDoc
+    };
+    JoinGroup: undefined;
+    NewGroup: undefined;
     Profile: undefined;
 };
