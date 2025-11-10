@@ -90,6 +90,7 @@ export class ListRepository {
         await updateDoc(listDoc, {
             name: list.name,
             owner_user_id: list.owner_user_id,
+            description: list.description,
             visibility: list.visibility,
             group_id: list.group_id,
             created_at: list.created_at,

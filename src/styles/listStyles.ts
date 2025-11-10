@@ -88,6 +88,8 @@ export const listDetailStyles = StyleSheet.create({
 
   listItemContainer: {
     padding: 10,
+    // borderBottomColor: colors.light_violet,
+    // borderBottomWidth: 1,
   },
   listItemRowContainer: {
     flexDirection: 'row',
@@ -116,7 +118,56 @@ export const listDetailStyles = StyleSheet.create({
     paddingVertical: 5,
     paddingLeft: 10,
     borderRadius: 20,
+  },
+  separator: { 
+    flex: 1,
+    marginTop: 20,
+    // width: '80%',
+    alignItems: 'center', 
+    height: 1,
+  },
+
+  parallelButtonWrapper: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    alignItems: 'center',
+  },
+  parallelButton: {
+    margin: 5,
+    marginHorizontal: 25,
+    backgroundColor: colors.sky_blue,
+    padding: 10,
+    paddingHorizontal: 35,
+    borderRadius: 10,
+  },
+
+  editListTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    // marginBottom: 5,
+    borderBottomColor: colors.gray,
+    borderBottomWidth: 1,
+  },
+
+  editListDesc: {
+    fontSize: 14,
+    // color: colors.sky_blue,
+    // margin: 5,
+    padding: 5,
+    // height: 50,
+    backgroundColor: '#dcd1c8d3',
+    borderRadius: 2,
+  },
+  editListItemRowWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  editListItemTrashButton: {
+    // justifyContent: 'center',
+    margin: 5,
+    marginRight: -15,
   }
+
 })
 
 export const newListStyles = StyleSheet.create({
