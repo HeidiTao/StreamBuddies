@@ -132,13 +132,13 @@ const ListView: React.FC<Props> = ({ navigation }) => {
         {/* list item contents */}
         <View>
         {listItems.map((item) => (
-          <View style={listDetailStyles.editListItemRowWrapper}>
+          <View style={listDetailStyles.editListItemRowWrapper}
+            key={item.tmdb_id}>
           <TouchableOpacity onPress={() => handleRemoveFromList(item.tmdb_id)}
             style={listDetailStyles.editListItemTrashButton}>
             <Ionicons name='trash-outline' size={20} color='#eb8080ff'/>
           </TouchableOpacity>
           <ListItemRowView
-            key={item.tmdb_id}
             listItem={item}
           />
           </View>

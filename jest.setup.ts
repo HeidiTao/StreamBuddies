@@ -18,12 +18,12 @@ try {
  * Mock reanimated to a stable Jest mock implementation to avoid native errors.
  * (Matches the official RN Testing Library guidance)
  */
-jest.mock("react-native-reanimated", () => {
-  const Reanimated = require("react-native-reanimated/mock");
-  // The mock has a no-op default .call; keep it to avoid undefined errors.
-  Reanimated.default.call = () => {};
-  return Reanimated;
-});
+// jest.mock("react-native-reanimated", () => {
+//   const Reanimated = require("react-native-reanimated/mock");
+//   // The mock has a no-op default .call; keep it to avoid undefined errors.
+//   Reanimated.default.call = () => {};
+//   return Reanimated;
+// });
 
 /**
  * Mock navigation so we can assert .navigate calls in unit tests
@@ -40,3 +40,14 @@ jest.mock("@react-navigation/native", () => {
     }),
   };
 });
+
+jest.mock("firebase/firestore", () => ({
+  Timestamp: { now: jest.fn() },
+  getFirestore: jest.fn(),
+  collection: jest.fn(),
+  getDocs: jest.fn(),
+  addDoc: jest.fn(),
+  doc: jest.fn(),
+  updateDoc: jest.fn(),
+  deleteDoc: jest.fn(),
+}));
