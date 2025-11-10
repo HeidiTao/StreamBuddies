@@ -2,6 +2,8 @@ import React from "react";
 import { ContentDoc, WatchlistItemDoc } from "../../sample_structs";
 import { View, Text, Image } from "react-native";
 import { listDetailStyles } from "../../styles/listStyles";
+// import LinearGradient from "react-native-linear-gradient";
+import { LinearGradient } from "expo-linear-gradient";
 
 interface ListItemRowViewProps {
   listItem: ContentDoc & WatchlistItemDoc;
@@ -25,6 +27,13 @@ const ListItemRowView: React.FC<ListItemRowViewProps> = ({ listItem }) => {
     </View>
       {/* To add later: added_by user */}
       <Text style={listDetailStyles.listItemNote}> {listItem.notes} </Text>
+      <LinearGradient
+        colors={['#f4fbf7', '#9cd3af', '#72c58f', '#9cd3af', '#f4fbf7']}
+        locations={[0, 0.2, 0.5, 0.8, 1]}
+        start={{x: 0.93, y: 0.75}}
+        end={{x: 0.07, y: 0.25}}
+        style={listDetailStyles.separator}
+      />
     </View>
   )
 

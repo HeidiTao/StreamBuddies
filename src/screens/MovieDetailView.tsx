@@ -1,10 +1,13 @@
 // src/screens/MovieDetailView.tsx
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Image } from "react-native";
+import { Modal, TextInput } from "react-native";
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Image, TouchableOpacity } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RouteProp } from "@react-navigation/native";
 import type { RootStackParamList } from "../navigation/types";
+import { query, collection, getDocs, setDoc, doc, Timestamp } from "firebase/firestore";
+import { db } from "../../config/firebase";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "MovieDetail">;
 type Route = RouteProp<RootStackParamList, "MovieDetail">;
@@ -61,6 +64,9 @@ const MovieDetailView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [movie, setMovie] = useState<MovieDetails | null>(null);
   const [providers, setProviders] = useState<string[]>([]);
+  const [showListModal, setShowListModal] = useState(false);
+  const [userWatchLists, setUserWatchLists] = useState<any[]>([]);
+  const [addListNotes, setAddListNotes] = useState("");
 
   useEffect(() => {
     navigation.setOptions({
@@ -97,8 +103,29 @@ const MovieDetailView: React.FC = () => {
     })();
   }, [movieId, tmdbApiKey, tmdbToken]);
 
+  useEffect(() => {
+    if (showListModal) {
+      const q = query(collection(db, `watchLists/`));
+      getDocs(q).then((snap) => {
+        const lists = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        setUserWatchLists(lists);
+      });
+      console.log("acquired lists");
+    }
+  }, [showListModal]);
+
   const genreList = useMemo(() => (movie?.genres ?? []).map((g) => g.name).join(", "), [movie?.genres]);
   const thumb = posterUri(movie?.poster_path);
+
+  const handleAddToList = (list_id : string, add_note: string) => {
+    const itemRef = doc(db, `watchLists/${list_id}/items/${movieId}`);
+    setDoc(itemRef, {
+      added_by: 0,  // TODO: adjust this to current user after user is set up
+      added_at: Timestamp.fromDate(new Date()),
+      notes: add_note,
+    });
+    setShowListModal(false);
+  }
 
   if (loading || !movie) {
     return (
@@ -112,13 +139,51 @@ const MovieDetailView: React.FC = () => {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
+
+        {/* Add to list modal */}
+        <Modal visible={showListModal} transparent animationType="slide">
+          <View style={styles.addToListModal}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Add to Watchlist</Text>
+              
+              <TextInput
+                style={styles.modalNotes}
+                placeholder="notes for adding to list"
+                value={addListNotes}
+                onChangeText={(text) => setAddListNotes(text)}
+              />
+
+              {userWatchLists.map(list => (
+                <TouchableOpacity
+                  key={list.id}
+                  onPress={() => handleAddToList(list.id, addListNotes)}
+                  style={styles.modalListOptions}
+                >
+                  <Text style={styles.modalListOptionText}>{list.name}</Text>
+                </TouchableOpacity>
+              ))}
+
+              <TouchableOpacity onPress={() => setShowListModal(false)}
+                style={styles.modelCancelButton}>
+                <Text style={styles.addToListText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      
         {/* Centered larger poster */}
         {thumb && (
           <Image source={{ uri: thumb }} style={styles.poster} resizeMode="cover" />
         )}
 
         <Text style={styles.title}>{movie.title}</Text>
-
+        <ScrollView>
+        <TouchableOpacity style={styles.addToListbubble}
+          onPress={() => setShowListModal(true)}>
+          <Text style={styles.addToListText}>Add to List</Text>
+        </TouchableOpacity>
+        </ScrollView>
+        
         {/* Section: Release Date */}
         <View style={styles.section}>
           <View style={styles.bubble}>
@@ -191,6 +256,68 @@ const styles = StyleSheet.create({
   },
   bubbleText: { color: "#ddd", fontSize: 12, fontWeight: "700", letterSpacing: 0.4 },
   value: { color: "#fff", fontSize: 16, lineHeight: 22, textAlign: "left" },
+
+  addToListbubble: {
+    alignSelf: "center",
+    backgroundColor: "#474d9cff",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginBottom: 6,
+  },
+  addToListText: {
+    color: "#ddd", 
+    fontSize: 14,
+    fontWeight: "700", 
+    letterSpacing: 0.4
+  },
+
+  addToListModal: {
+    flex: 1, 
+    justifyContent: 'center',
+    alignItems: 'center',
+    // padding: 50,
+  },
+  modalContent: {
+    backgroundColor: "#787dc6f4",
+    padding: 30,
+    borderRadius: 8, 
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 700,
+    // padding: 10,
+    margin: 10,
+  },
+  modalText: {
+    fontSize: 16,
+  },
+  modelCancelButton: {
+    marginTop: 15,
+    alignItems: 'center',
+    borderRadius: 8,
+    padding: 8, 
+    backgroundColor: "#9296c9ff",
+  },
+  modalListOptions: {
+    // padding: 10,
+    backgroundColor: "#959adbff",
+    margin: 3,
+    borderRadius: 5, 
+  },
+  modalListOptionText: {
+    margin: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    fontSize: 14,
+  },
+  modalNotes: {
+    backgroundColor: "#9296c9ff",
+    padding: 5,
+    marginBottom: 15,
+    borderRadius: 2,
+  }
+
 });
 
 export default MovieDetailView;
