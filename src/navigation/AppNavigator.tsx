@@ -12,7 +12,7 @@ import SearchView from "../screens/SearchView";
 import ListsView from "../screens/Lists/ListsView";
 import ListDetailView from "../screens/Lists/ListDetailView";
 import NewListView from "../screens/Lists/NewListView";
-import GroupsView from "../screens/GroupsView";
+import GroupsView from "../screens/Groups/GroupsView";
 import ProfileView from "../screens/ProfileView";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -59,10 +59,16 @@ const ListsStackScreen = () => {
   );
 };
 
+import GroupDetailView from "../screens/Groups/GroupDetailView";
+import NewGroupView from "../screens/Groups/NewGroupView";
+import JoinGroupView from "../screens/Groups/JoinGroupView";
 const GroupsStackScreen = () => {
   return (
     <Stack.Navigator>
-      <Stack.Screen name="Groups" component={GroupsView} options={{ title: "My Groups" }} />
+  <Stack.Screen name="Groups" component={GroupsView} options={{ title: "My Groups" }} />
+  <Stack.Screen name="GroupDetail" component={GroupDetailView} options={{ title: "Group Details" }} />
+  <Stack.Screen name="JoinGroup" component={JoinGroupView} options={{ title: "Join Group" }} />
+  <Stack.Screen name="NewGroup" component={NewGroupView} options={{ title: "Create New Group" }} />
     </Stack.Navigator>
   );
 };
