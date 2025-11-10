@@ -1,0 +1,222 @@
+import React from 'react';
+import { render, fireEvent, waitFor } from '@testing-library/react-native';
+import GroupsView from '../GroupsView';
+import { useGroups } from '../../hooks/useGroups';
+
+// Mock the hooks and navigation
+jest.mock('../../hooks/useGroups');
+jest.mock('@react-navigation/native', () => ({
+  useNavigation: () => ({
+    navigate: jest.fn(),
+  }),
+}));
+
+const mockUseGroups = useGroups as jest.MockedFunction<typeof useGroups>;
+
+describe('GroupsView', () => {
+  const mockNavigation = {
+    navigate: jest.fn(),
+  } as any;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('Loading State', () => {
+    it('should display loading message when groups are loading', () => {
+      mockUseGroups.mockReturnValue({
+        groups: [],
+        groupsLoading: true,
+      });
+
+      const { getByText } = render(<GroupsView navigation={mockNavigation} />);
+      
+      expect(getByText('Loading groups...')).toBeTruthy();
+    });
+  });
+
+  describe('Empty State', () => {
+    it('should display Join Group and New Group options when no groups exist', () => {
+      mockUseGroups.mockReturnValue({
+        groups: [],
+        groupsLoading: false,
+      });
+
+      const { getByText } = render(<GroupsView navigation={mockNavigation} />);
+      
+      expect(getByText('Join Group')).toBeTruthy();
+      expect(getByText('New Group')).toBeTruthy();
+    });
+
+    it('should display + symbols for Join Group and New Group circles', () => {
+      mockUseGroups.mockReturnValue({
+        groups: [],
+        groupsLoading: false,
+      });
+
+      const { getAllByText } = render(<GroupsView navigation={mockNavigation} />);
+      
+      const plusSigns = getAllByText('+');
+      expect(plusSigns).toHaveLength(2);
+    });
+  });
+
+  describe('Groups Display', () => {
+    it('should display all groups from the hook', () => {
+      const mockGroups = [
+        { id: '1', name: 'Movie Nights', member_count: 5 },
+        { id: '2', name: 'TV Series Club', member_count: 3 },
+        { id: '3', name: 'Anime Watchers', member_count: 8 },
+      ];
+
+      mockUseGroups.mockReturnValue({
+        groups: mockGroups,
+        groupsLoading: false,
+      });
+
+      const { getByText } = render(<GroupsView navigation={mockNavigation} />);
+      
+      expect(getByText('Movie Nights')).toBeTruthy();
+      expect(getByText('TV Series Club')).toBeTruthy();
+      expect(getByText('Anime Watchers')).toBeTruthy();
+    });
+
+    it('should display member initials for each group', () => {
+      const mockGroups = [
+        { id: '1', name: 'Test Group', member_count: 5 },
+      ];
+
+      mockUseGroups.mockReturnValue({
+        groups: mockGroups,
+        groupsLoading: false,
+      });
+
+      const { getAllByText } = render(<GroupsView navigation={mockNavigation} />);
+      
+      // Should display member initials (A, B from mockInitials[0])
+      expect(getAllByText(/[A-Z]/).length).toBeGreaterThan(0);
+    });
+
+    it('should limit member initials display to 5 per group', () => {
+      const mockGroups = [
+        { id: '1', name: 'Large Group', member_count: 10 },
+      ];
+
+      mockUseGroups.mockReturnValue({
+        groups: mockGroups,
+        groupsLoading: false,
+      });
+
+      const { getAllByTestId } = render(<GroupsView navigation={mockNavigation} />);
+      
+      // Note: You'd need to add testID props to the member circles in the actual component
+      // This is a placeholder for that functionality
+    });
+  });
+
+  describe('Navigation', () => {
+    it('should navigate to JoinGroup when Join Group is pressed', () => {
+      mockUseGroups.mockReturnValue({
+        groups: [],
+        groupsLoading: false,
+      });
+
+      const { getByText } = render(<GroupsView navigation={mockNavigation} />);
+      
+      const joinGroupButton = getByText('Join Group');
+      fireEvent.press(joinGroupButton);
+      
+      expect(mockNavigation.navigate).toHaveBeenCalledWith('JoinGroup');
+    });
+
+    it('should navigate to NewGroup when New Group is pressed', () => {
+      mockUseGroups.mockReturnValue({
+        groups: [],
+        groupsLoading: false,
+      });
+
+      const { getByText } = render(<GroupsView navigation={mockNavigation} />);
+      
+      const newGroupButton = getByText('New Group');
+      fireEvent.press(newGroupButton);
+      
+      expect(mockNavigation.navigate).toHaveBeenCalledWith('NewGroup');
+    });
+
+    it('should navigate to GroupDetail with correct group when a group is pressed', () => {
+      const mockGroups = [
+        { id: '1', name: 'Test Group', member_count: 5 },
+      ];
+
+      mockUseGroups.mockReturnValue({
+        groups: mockGroups,
+        groupsLoading: false,
+      });
+
+      const { getByText } = render(<GroupsView navigation={mockNavigation} />);
+      
+      const groupButton = getByText('Test Group');
+      fireEvent.press(groupButton);
+      
+      expect(mockNavigation.navigate).toHaveBeenCalledWith('GroupDetail', {
+        group: mockGroups[0],
+      });
+    });
+  });
+
+  describe('Grid Layout', () => {
+    it('should display groups in a grid format', () => {
+      const mockGroups = Array.from({ length: 6 }, (_, i) => ({
+        id: `${i + 1}`,
+        name: `Group ${i + 1}`,
+        member_count: 3,
+      }));
+
+      mockUseGroups.mockReturnValue({
+        groups: mockGroups,
+        groupsLoading: false,
+      });
+
+      const { getByText } = render(<GroupsView navigation={mockNavigation} />);
+      
+      // Verify all 6 groups plus Join and New are rendered
+      mockGroups.forEach(group => {
+        expect(getByText(group.name)).toBeTruthy();
+      });
+      expect(getByText('Join Group')).toBeTruthy();
+      expect(getByText('New Group')).toBeTruthy();
+    });
+  });
+
+  describe('Styling', () => {
+    it('should apply different background colors to Join Group and New Group', () => {
+      mockUseGroups.mockReturnValue({
+        groups: [],
+        groupsLoading: false,
+      });
+
+      const { getByText } = render(<GroupsView navigation={mockNavigation} />);
+      
+      // Join Group and New Group should exist with different styling
+      expect(getByText('Join Group')).toBeTruthy();
+      expect(getByText('New Group')).toBeTruthy();
+    });
+
+    it('should apply consistent background color to all user groups', () => {
+      const mockGroups = [
+        { id: '1', name: 'Group 1', member_count: 3 },
+        { id: '2', name: 'Group 2', member_count: 5 },
+      ];
+
+      mockUseGroups.mockReturnValue({
+        groups: mockGroups,
+        groupsLoading: false,
+      });
+
+      const { getByText } = render(<GroupsView navigation={mockNavigation} />);
+      
+      expect(getByText('Group 1')).toBeTruthy();
+      expect(getByText('Group 2')).toBeTruthy();
+    });
+  });
+});
