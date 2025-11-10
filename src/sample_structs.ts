@@ -104,12 +104,24 @@ export interface WatchlistItemDoc {
 // ---------- Groups ----------
 
 export interface GroupDoc {
+  id?: string;
   name: string;
+  code?: string;
   description?: string;
   created_by: ID;                    // userId
   created_at: TimestampMs;
   updated_at: TimestampMs;
   member_count?: number;             // enforce <= 10 via server
+  currently_watching?: {
+    tmdb_id: number;
+    title: string;
+    poster_path: string;
+  }[];
+  finished?: {
+    tmdb_id: number;
+    title: string;
+    poster_path: string;
+  }[];
 }
 
 export interface GroupMemberDoc {
