@@ -5,8 +5,9 @@ export const colors = {
   danger: '#FF3B30',
   mint_green: '#a1f1cbff',
   sky_blue: '#6da0dbff',
-  light_violet: '#ddc0f1ff',
+  light_violet: '#ddc0f1c8',
   off_white: '#f7f4f1ff',
   border: '#e0e0e0',
   grey: '#e3dfdbdd',
+  gray: '#92908edd',
 }
