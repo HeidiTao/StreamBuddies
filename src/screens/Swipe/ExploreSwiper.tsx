@@ -293,13 +293,22 @@ const ExploreSwiper: React.FC = () => {
             const m = deck[i];
             if (m) {
               console.log("⬆️ Swiped up for info:", m.title);
-              navigation.navigate("MovieDetail", { movieId: m.id, title: m.title });
+              navigation.navigate("MovieDetail", {
+                id: m.id,
+                title: m.title,
+                mediaType,
+              });
             }
           }}
           verticalSwipe={true}
           onTapCard={(i) => {
             const m = deck[i];
-            if (m) navigation.navigate("MovieDetail", { movieId: m.id, title: m.title });
+            if (m)
+              navigation.navigate("MovieDetail", {
+                id: m.id,
+                title: m.title,
+                mediaType,
+              });
           }}
         />
       </View>
@@ -322,7 +331,11 @@ const ExploreSwiper: React.FC = () => {
           onPress={() => {
             const m = deck[currentIndex];
             if (!m) return;
-            navigation.navigate("MovieDetail", { movieId: m.id, title: m.title });
+            navigation.navigate("MovieDetail", {
+              id: m.id,
+              title: m.title,
+              mediaType,
+            });
           }}
         >
           {/* Info "i" */}
