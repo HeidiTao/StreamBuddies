@@ -5,9 +5,8 @@ import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Image, Touchable
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RouteProp } from "@react-navigation/native";
-import type { RootStackParamList } from "../../navigation/types";
+import type { RootStackParamList } from "../navigation/types";
 import { query, collection, getDocs, setDoc, doc, Timestamp } from "firebase/firestore";
-import { db } from "../../../config/firebase";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "MovieDetail">;
 type Route = RouteProp<RootStackParamList, "MovieDetail">;

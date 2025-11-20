@@ -12,7 +12,7 @@ const ExploreView: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#000" },
+  container: { flex: 1, backgroundColor: "#ffffffff" },
 });
 
 export default ExploreView;

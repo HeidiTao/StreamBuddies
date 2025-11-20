@@ -3,8 +3,12 @@ import { WatchlistDoc, GroupDoc } from "../sample_structs";
 // navigation parameters passed between pages
 export type RootStackParamList = {
     Explore: undefined;
-    MovieDetail: { movieId: number; title?: string };
-
+    MovieDetail: {
+    id: number;
+    title: string;
+    mediaType: "movie" | "tv";
+    };
+    
     Search: undefined;
 
     Lists: undefined;

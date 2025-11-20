@@ -4,10 +4,11 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
+import { View, Text } from "react-native";  // 👈 add this
 
 import { RootStackParamList } from "./types";
 import ExploreView from "../screens/ExploreView";
-import MovieDetailView from "../screens/MovieDetailView";
+import MovieDetailView from "../screens/Swipe/MovieDetailView";
 import SearchView from "../screens/SearchView";
 import ListsView from "../screens/Lists/ListsView";
 import ListDetailView from "../screens/Lists/ListDetailView";
@@ -23,11 +24,27 @@ const ExploreStackScreen = () => {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        name="Explore"
-        component={ExploreView}
-        options={{ title: "Popular this week!" }}
-      />
-      {/* 👇 Add the details screen here */}
+      name="Explore"
+      component={ExploreView}
+      options={{
+        headerTitle: () => (
+          <View
+            style={{
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              backgroundColor: "#eee",
+              borderRadius: 12,
+              alignSelf: "center",
+            }}
+          >
+            <Text style={{ fontSize: 16, fontWeight: "600" }}>
+              Popular titles!
+            </Text>
+          </View>
+        ),
+      }}
+    />
+
       <Stack.Screen
         name="MovieDetail"
         component={MovieDetailView}
