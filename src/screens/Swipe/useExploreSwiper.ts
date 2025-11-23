@@ -116,6 +116,12 @@ const useExploreSwiper = () => {
     setTotalPages(null);
     setCurrentIndex(0);
   };
+  const refreshDeck = useCallback(() => {
+    setCurrentIndex(0);
+    setPage(1);
+    setTotalPages(null);
+    fetchDiscover(mediaType, 1, false);
+  }, [fetchDiscover, mediaType]);
 
   return {
     deck,
@@ -131,6 +137,7 @@ const useExploreSwiper = () => {
     page,
     totalPages,
     fetchDiscover, // if you want to trigger pagination from ExploreSwiper later
+    refreshDeck,
   };
 };
 

@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 16,
     justifyContent: "space-between",
-    backgroundColor: "#ffffffff",
+    backgroundColor: "transparent",
   },
   actionBtn: {
     flex: 1,

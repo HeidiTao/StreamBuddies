@@ -24,7 +24,6 @@ const YELLOW = "#ffca28";
 const ExploreSwiper: React.FC = () => {
   const navigation = useNavigation<Nav>();
 
-  // Custom hook: data + swipe state
   const {
     deck,
     loading,
@@ -36,13 +35,13 @@ const ExploreSwiper: React.FC = () => {
     bgValue,
     upValue,
     isLoadingMore,
+    refreshDeck, // 👈 use this for swipe-down
   } = useExploreSwiper();
 
-  // derived animated colors
   const bgColor = bgValue.interpolate({
-    inputRange: [-1, 0, 1],
-    outputRange: ["#d32f2f", "#000000", "#2e7d32"],
-  });
+  inputRange: [-1, 0, 1],
+  outputRange: ["#d32f2f", "#ffffff", "#2e7d32"], // 👈 NEUTRAL = white
+});
 
   const upOpacity = upValue.interpolate({
     inputRange: [0, 1],
@@ -92,7 +91,6 @@ const ExploreSwiper: React.FC = () => {
     });
   };
 
-  // bottom buttons
   const handlePassPress = () => {
     swiperRef.current?.swipeLeft();
     setCurrentIndex((i) => Math.min(i + 1, deck.length - 1));
@@ -137,18 +135,16 @@ const ExploreSwiper: React.FC = () => {
       />
 
       <View style={styles.content}>
-        {/* top toggle bar (modular component) */}
         <MediaToggleBar
           mediaType={mediaType}
           onChange={(mt: MediaType) => switchMediaType(mt)}
         />
 
-        {/* middle swiper area (same layout as your working version) */}
         <View style={styles.swiperWrap}>
           <Swiper
             ref={swiperRef}
             cards={deck}
-            cardStyle={styles.card} // shorter cards
+            cardStyle={styles.card}
             renderCard={(m) =>
               m ? (
                 <MovieCard title={m.title} posterPath={m.poster_path} />
@@ -176,13 +172,20 @@ const ExploreSwiper: React.FC = () => {
               if (passed) console.log("👎 Passed:", passed.title);
             }}
             onSwipedTop={(i) => navigateToDetail(deck[i])}
+            onSwipedBottom={() => {
+              // 👇 swipe down → refresh
+              refreshDeck();
+            }}
             verticalSwipe={true}
-            disableBottomSwipe={true} // ⬅️ prevents swiping down over buttons
+            // NOTE: allow bottom swipe now, since we want to use it
+            // disableBottomSwipe={true}
             onTapCard={(i) => navigateToDetail(deck[i])}
+            onSwipedAborted={() => {
+              resetBg();  // 👈 ensure color resets when swipe doesn’t complete
+            }}
           />
         </View>
 
-        {/* bottom buttons (modular component) */}
         <SwipeActionBar
           onPass={handlePassPress}
           onInfo={handleInfoPress}
@@ -203,9 +206,19 @@ const ExploreSwiper: React.FC = () => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
-  content: {
+    content: {
     flex: 1,
-    backgroundColor: "#ffffffff",
+    // Let the Animated.View’s bgColor show through
+    backgroundColor: "transparent",
+  },
+
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    // If you want the animated background even in loading/empty states,
+    // also make this transparent (or just remove the backgroundColor).
+    backgroundColor: "transparent",
   },
 
   swiperWrap: {
@@ -214,9 +227,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
 
-  // shorter cards
   card: {
-    height: "100%", // tweak 55–70% to taste
+    height: "100%",
     alignSelf: "center",
     borderRadius: 16,
     overflow: "hidden",
