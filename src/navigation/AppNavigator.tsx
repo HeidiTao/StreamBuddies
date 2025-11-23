@@ -15,6 +15,7 @@ import ListDetailView from "../screens/Lists/ListDetailView";
 import NewListView from "../screens/Lists/NewListView";
 import GroupsView from "../screens/Groups/GroupsView";
 import ProfileView from "../screens/ProfileView";
+import ExploreGridView from "../screens/Swipe/ExploreGridView";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
@@ -45,7 +46,28 @@ const ExploreStackScreen = () => {
           ),
         }}
       />
+      <Stack.Screen
+        name="Trending"                 // 👈 existing route name
+        component={ExploreGridView}     // 👈 use the new grid screen
+        options={{
+          // no title text at all
+          headerTitle: () => null,
 
+          // default header background (still white)
+          headerStyle: { backgroundColor: "#ffffff" },
+          headerShadowVisible: false,
+
+          // custom tiny header: just a white spacer bar of height 8
+          header: () => (
+            <View
+              style={{
+                height: 60,           // 👈 small white strip like in your “Up” mock
+                backgroundColor: "#ffffff",
+              }}
+            />
+          ),
+        }}
+      />
       <Stack.Screen
         name="MovieDetail"
         component={MovieDetailView}

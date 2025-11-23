@@ -134,11 +134,12 @@ const ExploreSwiper: React.FC = () => {
         ]}
       />
 
-      <View style={styles.content}>
-        <MediaToggleBar
-          mediaType={mediaType}
-          onChange={(mt: MediaType) => switchMediaType(mt)}
-        />
+      <MediaToggleBar
+        mediaType={mediaType}
+        onChange={(mt: MediaType) => switchMediaType(mt)}
+        bottomLabel="🔥 Trending"
+        onBottomPress={() => navigation.navigate("Trending")}
+      />
 
         <View style={styles.swiperWrap}>
           <Swiper
@@ -191,7 +192,6 @@ const ExploreSwiper: React.FC = () => {
           onInfo={handleInfoPress}
           onLike={handleLikePress}
         />
-      </View>
 
       {isLoadingMore && (
         <View style={styles.loadingMore}>

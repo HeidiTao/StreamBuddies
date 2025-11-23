@@ -8,7 +8,7 @@ export type RootStackParamList = {
     title: string;
     mediaType: "movie" | "tv";
     };
-    
+    Trending:undefined;
     Search: undefined;
 
     Lists: undefined;

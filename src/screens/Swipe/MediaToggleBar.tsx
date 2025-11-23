@@ -6,31 +6,34 @@ import type { MediaType } from "./useExploreSwiper";
 type Props = {
   mediaType: MediaType;
   onChange: (media: MediaType) => void;
-  onTrending: () => void;
+
+  // generic bottom button (optional)
+  bottomLabel?: string;
+  onBottomPress?: () => void;
 };
 
 const MediaToggleBar: React.FC<Props> = ({
   mediaType,
   onChange,
-  onTrending,
+  bottomLabel,
+  onBottomPress,
 }) => {
   return (
     <View style={styles.wrapper}>
       {/* --- Movies / Shows row --- */}
       <View style={styles.toggleBar}>
-        
         {/* MOVIES BUTTON */}
         <TouchableOpacity
           style={[
             styles.toggleButton,
-            mediaType === "movie" && styles.movieActive,   // 👈 your green color
+            mediaType === "movie" && styles.movieActive,
           ]}
           onPress={() => onChange("movie")}
         >
           <Text
             style={[
               styles.toggleText,
-              mediaType === "movie" && styles.toggleTextActiveDark, // dark text
+              mediaType === "movie" && styles.toggleTextActiveDark,
             ]}
           >
             Movies
@@ -41,26 +44,27 @@ const MediaToggleBar: React.FC<Props> = ({
         <TouchableOpacity
           style={[
             styles.toggleButton,
-            mediaType === "tv" && styles.showsActive,     // 👈 new shows color
+            mediaType === "tv" && styles.showsActive,
           ]}
           onPress={() => onChange("tv")}
         >
           <Text
             style={[
               styles.toggleText,
-              mediaType === "tv" && styles.toggleTextActiveDark, // dark text
+              mediaType === "tv" && styles.toggleTextActiveDark,
             ]}
           >
             Shows
           </Text>
         </TouchableOpacity>
-
       </View>
 
-      {/* --- Trending button beneath --- */}
-      <TouchableOpacity style={styles.trendingButton} onPress={onTrending}>
-        <Text style={styles.trendingText}>🔥 Trending</Text>
-      </TouchableOpacity>
+      {/* --- Optional bottom button (Trending / Swipe / etc.) --- */}
+      {bottomLabel && onBottomPress && (
+        <TouchableOpacity style={styles.trendingButton} onPress={onBottomPress}>
+          <Text style={styles.trendingText}>{bottomLabel}</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -92,13 +96,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#000",
   },
 
-  // 🎨 Movies active = your green tone
+  // Movies active
   movieActive: {
     backgroundColor: "#d6eadf",
     borderColor: "#d6eadf",
   },
 
-  // 🎨 Shows active = complementary lavender (change if you want)
+  // Shows active (same color per your last change)
   showsActive: {
     backgroundColor: "#d6eadf",
     borderColor: "#d6eadf",
@@ -115,6 +119,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
+  // Bottom button (Trending / Swipe)
   trendingButton: {
     marginTop: 6,
     paddingVertical: 8,
