@@ -156,7 +156,7 @@ const ExploreSwiper: React.FC = () => {
             }
             backgroundColor="transparent"
             stackSize={3}
-            cardVerticalMargin={16}
+            cardVerticalMargin={8}
             animateCardOpacity
             onSwiping={handleSwiping}
             onSwiped={(i) => {

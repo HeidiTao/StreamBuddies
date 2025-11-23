@@ -24,26 +24,27 @@ const ExploreStackScreen = () => {
   return (
     <Stack.Navigator>
       <Stack.Screen
-      name="Explore"
-      component={ExploreView}
-      options={{
-        headerTitle: () => (
-          <View
-            style={{
-              paddingHorizontal: 12,
-              paddingVertical: 6,
-              backgroundColor: "#eee",
-              borderRadius: 12,
-              alignSelf: "center",
-            }}
-          >
-            <Text style={{ fontSize: 16, fontWeight: "600" }}>
-              Popular titles!
-            </Text>
-          </View>
-        ),
-      }}
-    />
+              name="Explore"
+        component={ExploreView}
+        options={{
+          // no title text at all
+          headerTitle: () => null,
+
+          // default header background (still white)
+          headerStyle: { backgroundColor: "#ffffff" },
+          headerShadowVisible: false,
+
+          // custom tiny header: just a white spacer bar of height 8
+          header: () => (
+            <View
+              style={{
+                height: 60,           // 👈 small white strip like in your “Up” mock
+                backgroundColor: "#ffffff",
+              }}
+            />
+          ),
+        }}
+      />
 
       <Stack.Screen
         name="MovieDetail"
