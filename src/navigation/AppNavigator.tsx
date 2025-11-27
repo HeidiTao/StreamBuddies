@@ -4,16 +4,18 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
+import { View, Text } from "react-native";  // 👈 add this
 
 import { RootStackParamList } from "./types";
 import ExploreView from "../screens/ExploreView";
-import MovieDetailView from "../screens/MovieDetailView";
+import MovieDetailView from "../screens/Swipe/MovieDetailView";
 import SearchView from "../screens/SearchView";
 import ListsView from "../screens/Lists/ListsView";
 import ListDetailView from "../screens/Lists/ListDetailView";
 import NewListView from "../screens/Lists/NewListView";
 import GroupsView from "../screens/Groups/GroupsView";
 import ProfileView from "../screens/ProfileView";
+import ExploreGridView from "../screens/Swipe/ExploreGridView";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
@@ -23,11 +25,49 @@ const ExploreStackScreen = () => {
   return (
     <Stack.Navigator>
       <Stack.Screen
-        name="Explore"
+              name="Explore"
         component={ExploreView}
-        options={{ title: "Popular this week!" }}
+        options={{
+          // no title text at all
+          headerTitle: () => null,
+
+          // default header background (still white)
+          headerStyle: { backgroundColor: "#ffffff" },
+          headerShadowVisible: false,
+
+          // custom tiny header: just a white spacer bar of height 8
+          header: () => (
+            <View
+              style={{
+                height: 60,           // 👈 small white strip like in your “Up” mock
+                backgroundColor: "#ffffff",
+              }}
+            />
+          ),
+        }}
       />
-      {/* 👇 Add the details screen here */}
+      <Stack.Screen
+        name="Trending"                 // 👈 existing route name
+        component={ExploreGridView}     // 👈 use the new grid screen
+        options={{
+          // no title text at all
+          headerTitle: () => null,
+
+          // default header background (still white)
+          headerStyle: { backgroundColor: "#ffffff" },
+          headerShadowVisible: false,
+
+          // custom tiny header: just a white spacer bar of height 8
+          header: () => (
+            <View
+              style={{
+                height: 60,           // 👈 small white strip like in your “Up” mock
+                backgroundColor: "#ffffff",
+              }}
+            />
+          ),
+        }}
+      />
       <Stack.Screen
         name="MovieDetail"
         component={MovieDetailView}

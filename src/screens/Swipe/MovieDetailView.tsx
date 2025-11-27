@@ -7,17 +7,19 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RouteProp } from "@react-navigation/native";
 import type { RootStackParamList } from "../navigation/types";
 import { query, collection, getDocs, setDoc, doc, Timestamp } from "firebase/firestore";
-import { db } from "../../config/firebase";
+import { Ionicons } from "@expo/vector-icons"; // 👈 add this at the top
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "MovieDetail">;
 type Route = RouteProp<RootStackParamList, "MovieDetail">;
 
 type MovieDetails = {
   id: number;
-  title: string;
+  title?: string;
+  name?: string;
   overview: string;
   genres?: { id: number; name: string }[];
   release_date?: string;
+  first_air_date?: string;
   poster_path?: string | null;
 };
 
@@ -29,15 +31,19 @@ type ProvidersResp = {
   };
 };
 
-const detailsUrl = (id: number, key?: string) =>
-  key
-    ? `https://api.themoviedb.org/3/movie/${id}?api_key=${key}&language=en-US`
-    : `https://api.themoviedb.org/3/movie/${id}?language=en-US`;
+const detailsUrl = (id: number, mediaType: "movie" | "tv", key?: string) => {
+  const typePath = mediaType === "tv" ? "tv" : "movie";
+  return key
+    ? `https://api.themoviedb.org/3/${typePath}/${id}?api_key=${key}&language=en-US`
+    : `https://api.themoviedb.org/3/${typePath}/${id}?language=en-US`;
+};
 
-const providersUrl = (id: number, key?: string) =>
-  key
-    ? `https://api.themoviedb.org/3/movie/${id}/watch/providers?api_key=${key}`
-    : `https://api.themoviedb.org/3/movie/${id}/watch/providers`;
+const providersUrl = (id: number, mediaType: "movie" | "tv", key?: string) => {
+  const typePath = mediaType === "tv" ? "tv" : "movie";
+  return key
+    ? `https://api.themoviedb.org/3/${typePath}/${id}/watch/providers?api_key=${key}`
+    : `https://api.themoviedb.org/3/${typePath}/${id}/watch/providers`;
+};
 
 const posterUri = (p?: string | null) =>
   p ? `https://image.tmdb.org/t/p/w500/${p}` : undefined;
@@ -52,7 +58,7 @@ const formatDate = (iso?: string) => {
 const MovieDetailView: React.FC = () => {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const { movieId, title } = route.params;
+  const { id, title, mediaType } = route.params;
 
   const tmdbToken = process.env.EXPO_PUBLIC_TMDB_READ_TOKEN;
   const tmdbApiKey = process.env.EXPO_PUBLIC_TMDB_API_KEY;
@@ -69,25 +75,47 @@ const MovieDetailView: React.FC = () => {
   const [addListNotes, setAddListNotes] = useState("");
 
   useEffect(() => {
-    navigation.setOptions({
-      title: title ?? "Details",
-      headerBackTitleVisible: false,
-    });
-  }, [navigation, title]);
+  navigation.setOptions({
+    title: title ?? "Details",
+    headerBackTitleVisible: false,
+    headerLeft: () => (
+      <TouchableOpacity
+        onPress={() => {
+          // Prefer popping if we can…
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          } else {
+            // …but ALWAYS fall back to the grid (Trending) if not
+            navigation.navigate("Trending");
+          }
+        }}
+        style={{ paddingHorizontal: 8 }}
+      >
+        <Ionicons name="chevron-back" size={24} color="#000000ff" />
+      </TouchableOpacity>
+    ),
+  });
+}, [navigation, title]);
 
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
 
-        // Movie details
-        const detRes = await fetch(detailsUrl(movieId, tmdbToken ? undefined : tmdbApiKey), { headers });
+        // Details (movie or TV)
+        const detRes = await fetch(
+          detailsUrl(id, mediaType, tmdbToken ? undefined : tmdbApiKey),
+          { headers }
+        );
         const detJson: MovieDetails = await detRes.json();
         if (!detRes.ok) throw new Error(`Details failed: ${detRes.status}`);
         setMovie(detJson);
 
         // Streaming providers (US only)
-        const provRes = await fetch(providersUrl(movieId, tmdbToken ? undefined : tmdbApiKey), { headers });
+        const provRes = await fetch(
+          providersUrl(id, mediaType, tmdbToken ? undefined : tmdbApiKey),
+          { headers }
+        );
         const provJson: ProvidersResp = await provRes.json();
         if (!provRes.ok) throw new Error(`Providers failed: ${provRes.status}`);
 
@@ -101,7 +129,7 @@ const MovieDetailView: React.FC = () => {
         setLoading(false);
       }
     })();
-  }, [movieId, tmdbApiKey, tmdbToken]);
+  }, [id, mediaType, tmdbApiKey, tmdbToken]);
 
   useEffect(() => {
     if (showListModal) {
@@ -114,18 +142,21 @@ const MovieDetailView: React.FC = () => {
     }
   }, [showListModal]);
 
-  const genreList = useMemo(() => (movie?.genres ?? []).map((g) => g.name).join(", "), [movie?.genres]);
+  const genreList = useMemo(
+    () => (movie?.genres ?? []).map((g) => g.name).join(", "),
+    [movie?.genres]
+  );
   const thumb = posterUri(movie?.poster_path);
 
-  const handleAddToList = (list_id : string, add_note: string) => {
-    const itemRef = doc(db, `watchLists/${list_id}/items/${movieId}`);
+  const handleAddToList = (list_id: string, add_note: string) => {
+    const itemRef = doc(db, `watchLists/${list_id}/items/${id}`);
     setDoc(itemRef, {
-      added_by: 0,  // TODO: adjust this to current user after user is set up
+      added_by: 0, // TODO: adjust this to current user after user is set up
       added_at: Timestamp.fromDate(new Date()),
       notes: add_note,
     });
     setShowListModal(false);
-  }
+  };
 
   if (loading || !movie) {
     return (
@@ -136,16 +167,19 @@ const MovieDetailView: React.FC = () => {
     );
   }
 
+  const displayTitle = movie.title ?? movie.name ?? title;
+  const displayDate = movie.release_date ?? movie.first_air_date;
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
 
         {/* Add to list modal */}
         <Modal visible={showListModal} transparent animationType="slide">
-          <View style={styles.addToListModal}>
-            <View style={styles.modalContent}>
+        <View style={styles.addToListModal} pointerEvents="box-none">
+          <View style={styles.modalContent} pointerEvents="auto">
               <Text style={styles.modalTitle}>Add to Watchlist</Text>
-              
+
               <TextInput
                 style={styles.modalNotes}
                 placeholder="notes for adding to list"
@@ -163,33 +197,40 @@ const MovieDetailView: React.FC = () => {
                 </TouchableOpacity>
               ))}
 
-              <TouchableOpacity onPress={() => setShowListModal(false)}
-                style={styles.modelCancelButton}>
+              <TouchableOpacity
+                onPress={() => setShowListModal(false)}
+                style={styles.modelCancelButton}
+              >
                 <Text style={styles.addToListText}>Cancel</Text>
               </TouchableOpacity>
             </View>
           </View>
         </Modal>
-      
+
         {/* Centered larger poster */}
         {thumb && (
           <Image source={{ uri: thumb }} style={styles.poster} resizeMode="cover" />
         )}
 
-        <Text style={styles.title}>{movie.title}</Text>
+        <Text style={styles.title}>{displayTitle}</Text>
+
         <ScrollView>
-        <TouchableOpacity style={styles.addToListbubble}
-          onPress={() => setShowListModal(true)}>
-          <Text style={styles.addToListText}>Add to List</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.addToListbubble}
+            onPress={() => setShowListModal(true)}
+          >
+            <Text style={styles.addToListText}>Add to List</Text>
+          </TouchableOpacity>
         </ScrollView>
-        
-        {/* Section: Release Date */}
+
+        {/* Section: Release Date / First Air Date */}
         <View style={styles.section}>
           <View style={styles.bubble}>
-            <Text style={styles.bubbleText}>Release Date</Text>
+            <Text style={styles.bubbleText}>
+              {mediaType === "movie" ? "Release Date" : "First Air Date"}
+            </Text>
           </View>
-          <Text style={styles.value}>{formatDate(movie.release_date)}</Text>
+          <Text style={styles.value}>{formatDate(displayDate)}</Text>
         </View>
 
         {/* Section: Description */}
@@ -214,7 +255,9 @@ const MovieDetailView: React.FC = () => {
             <Text style={styles.bubbleText}>Streaming Services (US)</Text>
           </View>
           <Text style={styles.value}>
-            {providers.length ? providers.join(", ") : "Not currently available to stream (flatrate) in US"}
+            {providers.length
+              ? providers.join(", ")
+              : "Not currently available to stream (flatrate) in US"}
           </Text>
         </View>
       </ScrollView>
@@ -266,27 +309,25 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   addToListText: {
-    color: "#ddd", 
+    color: "#ddd",
     fontSize: 14,
-    fontWeight: "700", 
-    letterSpacing: 0.4
+    fontWeight: "700",
+    letterSpacing: 0.4,
   },
 
   addToListModal: {
-    flex: 1, 
-    justifyContent: 'center',
-    alignItems: 'center',
-    // padding: 50,
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContent: {
     backgroundColor: "#787dc6f4",
     padding: 30,
-    borderRadius: 8, 
+    borderRadius: 8,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: 700,
-    // padding: 10,
+    fontWeight: "700",
     margin: 10,
   },
   modalText: {
@@ -294,16 +335,15 @@ const styles = StyleSheet.create({
   },
   modelCancelButton: {
     marginTop: 15,
-    alignItems: 'center',
+    alignItems: "center",
     borderRadius: 8,
-    padding: 8, 
+    padding: 8,
     backgroundColor: "#9296c9ff",
   },
   modalListOptions: {
-    // padding: 10,
     backgroundColor: "#959adbff",
     margin: 3,
-    borderRadius: 5, 
+    borderRadius: 5,
   },
   modalListOptionText: {
     margin: 4,
@@ -316,8 +356,7 @@ const styles = StyleSheet.create({
     padding: 5,
     marginBottom: 15,
     borderRadius: 2,
-  }
-
+  },
 });
 
 export default MovieDetailView;
