@@ -162,7 +162,7 @@ const ExploreGridView: React.FC = () => {
         mediaType={mediaType}
         onChange={handleChangeMediaType}
         bottomLabel="Swipe"
-        onBottomPress={() => navigation.navigate("Explore")} // 👈 back to swiper
+        onBottomPress={() => navigation.goBack()} // 👈 back to swiper
       />
 
       {/* Grid of posters */}

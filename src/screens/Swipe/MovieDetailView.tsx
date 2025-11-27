@@ -7,6 +7,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RouteProp } from "@react-navigation/native";
 import type { RootStackParamList } from "../navigation/types";
 import { query, collection, getDocs, setDoc, doc, Timestamp } from "firebase/firestore";
+import { Ionicons } from "@expo/vector-icons"; // 👈 add this at the top
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "MovieDetail">;
 type Route = RouteProp<RootStackParamList, "MovieDetail">;
@@ -74,11 +75,27 @@ const MovieDetailView: React.FC = () => {
   const [addListNotes, setAddListNotes] = useState("");
 
   useEffect(() => {
-    navigation.setOptions({
-      title: title ?? "Details",
-      headerBackTitleVisible: false,
-    });
-  }, [navigation, title]);
+  navigation.setOptions({
+    title: title ?? "Details",
+    headerBackTitleVisible: false,
+    headerLeft: () => (
+      <TouchableOpacity
+        onPress={() => {
+          // Prefer popping if we can…
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          } else {
+            // …but ALWAYS fall back to the grid (Trending) if not
+            navigation.navigate("Trending");
+          }
+        }}
+        style={{ paddingHorizontal: 8 }}
+      >
+        <Ionicons name="chevron-back" size={24} color="#000000ff" />
+      </TouchableOpacity>
+    ),
+  });
+}, [navigation, title]);
 
   useEffect(() => {
     (async () => {
@@ -159,8 +176,8 @@ const MovieDetailView: React.FC = () => {
 
         {/* Add to list modal */}
         <Modal visible={showListModal} transparent animationType="slide">
-          <View style={styles.addToListModal}>
-            <View style={styles.modalContent}>
+        <View style={styles.addToListModal} pointerEvents="box-none">
+          <View style={styles.modalContent} pointerEvents="auto">
               <Text style={styles.modalTitle}>Add to Watchlist</Text>
 
               <TextInput
