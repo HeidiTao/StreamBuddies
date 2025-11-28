@@ -7,7 +7,10 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RouteProp } from "@react-navigation/native";
 import type { RootStackParamList } from "../navigation/types";
 import { query, collection, getDocs, setDoc, doc, Timestamp } from "firebase/firestore";
-import { Ionicons } from "@expo/vector-icons"; // 👈 add this at the top
+import { Ionicons } from "@expo/vector-icons"; 
+import { db } from "../../../config/firebase";
+import AddToListButton from "./Components/AddToListButton";
+
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "MovieDetail">;
 type Route = RouteProp<RootStackParamList, "MovieDetail">;
@@ -215,12 +218,7 @@ const MovieDetailView: React.FC = () => {
         <Text style={styles.title}>{displayTitle}</Text>
 
         <ScrollView>
-          <TouchableOpacity
-            style={styles.addToListbubble}
-            onPress={() => setShowListModal(true)}
-          >
-            <Text style={styles.addToListText}>Add to List</Text>
-          </TouchableOpacity>
+          <AddToListButton onPress={() => setShowListModal(true)} />
         </ScrollView>
 
         {/* Section: Release Date / First Air Date */}

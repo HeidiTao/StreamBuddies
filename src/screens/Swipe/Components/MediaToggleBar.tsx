@@ -1,7 +1,7 @@
 // src/screens/Swipe/MediaToggleBar.tsx
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import type { MediaType } from "./useExploreSwiper";
+import type { MediaType } from "../useExploreSwiper";
 
 type Props = {
   mediaType: MediaType;

@@ -13,7 +13,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../../navigation/types";
 import type { MediaType } from "./useExploreSwiper";
-import MediaToggleBar from "./MediaToggleBar";   // 👈 use shared toggle bar
+import MediaToggleBar from "./Components/MediaToggleBar";   // 👈 use shared toggle bar
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "Trending">;
 

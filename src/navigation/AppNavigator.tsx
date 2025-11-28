@@ -16,6 +16,7 @@ import NewListView from "../screens/Lists/NewListView";
 import GroupsView from "../screens/Groups/GroupsView";
 import ProfileView from "../screens/ProfileView";
 import ExploreGridView from "../screens/Swipe/ExploreGridView";
+import LikeConfirmationView from "../screens/Swipe/LikeConfirmationView";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
@@ -39,7 +40,7 @@ const ExploreStackScreen = () => {
           header: () => (
             <View
               style={{
-                height: 60,           // 👈 small white strip like in your “Up” mock
+                height: 60,           
                 backgroundColor: "#ffffff",
               }}
             />
@@ -47,8 +48,8 @@ const ExploreStackScreen = () => {
         }}
       />
       <Stack.Screen
-        name="Trending"                 // 👈 existing route name
-        component={ExploreGridView}     // 👈 use the new grid screen
+        name="Trending"                 
+        component={ExploreGridView}     
         options={{
           // no title text at all
           headerTitle: () => null,
@@ -72,6 +73,10 @@ const ExploreStackScreen = () => {
         name="MovieDetail"
         component={MovieDetailView}
         options={{ title: "Details" }}
+      />
+      <Stack.Screen
+        name="LikeConfirmation"
+        component={LikeConfirmationView}
       />
     </Stack.Navigator>
   );

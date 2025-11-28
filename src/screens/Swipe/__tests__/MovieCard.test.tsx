@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen } from "@testing-library/react-native";
-import MovieCard from "../MovieCard";
+import MovieCard from "../Components/MovieCard";
 
 describe("MovieCard (unit)", () => {
   it("renders the title text", () => {

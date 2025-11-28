@@ -12,9 +12,9 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../../navigation/types";
 
-import MovieCard from "./MovieCard";
-import MediaToggleBar from "./MediaToggleBar";
-import SwipeActionBar from "./SwipeActionBar";
+import MovieCard from "./Components/MovieCard";
+import MediaToggleBar from "./Components/MediaToggleBar";
+import SwipeActionBar from "./Components/SwipeActionBar";
 import useExploreSwiper, { MediaType, MediaItem } from "./useExploreSwiper";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "Explore">;
@@ -39,9 +39,9 @@ const ExploreSwiper: React.FC = () => {
   } = useExploreSwiper();
 
   const bgColor = bgValue.interpolate({
-  inputRange: [-1, 0, 1],
-  outputRange: ["#d32f2f", "#ffffff", "#2e7d32"], // 👈 NEUTRAL = white
-});
+    inputRange: [-1, 0, 1],
+    outputRange: ["#d32f2f", "#ffffff", "#2e7d32"], // 👈 NEUTRAL = white
+  });
 
   const upOpacity = upValue.interpolate({
     inputRange: [0, 1],
@@ -91,14 +91,19 @@ const ExploreSwiper: React.FC = () => {
     });
   };
 
+  const navigateToLikeConfirmation = (m: MediaItem | undefined) => {
+    if (!m) return;
+    navigation.navigate("LikeConfirmation", {
+      movie: m,        // 👈 pass the whole media item
+    });
+  };
+
   const handlePassPress = () => {
     swiperRef.current?.swipeLeft();
-    setCurrentIndex((i) => Math.min(i + 1, deck.length - 1));
   };
 
   const handleLikePress = () => {
     swiperRef.current?.swipeRight();
-    setCurrentIndex((i) => Math.min(i + 1, deck.length - 1));
   };
 
   const handleInfoPress = () => {
@@ -141,57 +146,60 @@ const ExploreSwiper: React.FC = () => {
         onBottomPress={() => navigation.navigate("Trending")}
       />
 
-        <View style={styles.swiperWrap}>
-          <Swiper
-            ref={swiperRef}
-            cards={deck}
-            cardStyle={styles.card}
-            renderCard={(m) =>
-              m ? (
-                <MovieCard title={m.title} posterPath={m.poster_path} />
-              ) : (
-                <View style={styles.centerInner}>
-                  <Text style={styles.emptyText}>No more titles.</Text>
-                </View>
-              )
+      <View style={styles.swiperWrap}>
+        <Swiper
+          ref={swiperRef}
+          cards={deck}
+          cardStyle={styles.card}
+          renderCard={(m) =>
+            m ? (
+              <MovieCard title={m.title} posterPath={m.poster_path} />
+            ) : (
+              <View style={styles.centerInner}>
+                <Text style={styles.emptyText}>No more titles.</Text>
+              </View>
+            )
+          }
+          backgroundColor="transparent"
+          stackSize={3}
+          cardVerticalMargin={8}
+          animateCardOpacity
+          onSwiping={handleSwiping}
+          onSwiped={(i) => {
+            setCurrentIndex(i + 1);
+            resetBg();
+          }}
+          onSwipedRight={(i) => {
+            const liked = deck[i];
+            if (liked) {
+              console.log("👍 Liked:", liked.title);
+              navigateToLikeConfirmation(liked);
             }
-            backgroundColor="transparent"
-            stackSize={3}
-            cardVerticalMargin={8}
-            animateCardOpacity
-            onSwiping={handleSwiping}
-            onSwiped={(i) => {
-              setCurrentIndex(i + 1);
-              resetBg();
-            }}
-            onSwipedRight={(i) => {
-              const liked = deck[i];
-              if (liked) console.log("👍 Liked:", liked.title);
-            }}
-            onSwipedLeft={(i) => {
-              const passed = deck[i];
-              if (passed) console.log("👎 Passed:", passed.title);
-            }}
-            onSwipedTop={(i) => navigateToDetail(deck[i])}
-            onSwipedBottom={() => {
-              // 👇 swipe down → refresh
-              refreshDeck();
-            }}
-            verticalSwipe={true}
-            // NOTE: allow bottom swipe now, since we want to use it
-            // disableBottomSwipe={true}
-            onTapCard={(i) => navigateToDetail(deck[i])}
-            onSwipedAborted={() => {
-              resetBg();  // 👈 ensure color resets when swipe doesn’t complete
-            }}
-          />
-        </View>
-
-        <SwipeActionBar
-          onPass={handlePassPress}
-          onInfo={handleInfoPress}
-          onLike={handleLikePress}
+          }}
+          onSwipedLeft={(i) => {
+            const passed = deck[i];
+            if (passed) console.log("👎 Passed:", passed.title);
+          }}
+          onSwipedTop={(i) => navigateToDetail(deck[i])}
+          onSwipedBottom={() => {
+            // 👇 swipe down → refresh
+            refreshDeck();
+          }}
+          verticalSwipe={true}
+          // NOTE: allow bottom swipe now, since we want to use it
+          // disableBottomSwipe={true}
+          onTapCard={(i) => navigateToDetail(deck[i])}
+          onSwipedAborted={() => {
+            resetBg(); // 👈 ensure color resets when swipe doesn’t complete
+          }}
         />
+      </View>
+
+      <SwipeActionBar
+        onPass={handlePassPress}
+        onInfo={handleInfoPress}
+        onLike={handleLikePress}
+      />
 
       {isLoadingMore && (
         <View style={styles.loadingMore}>
@@ -206,7 +214,7 @@ const ExploreSwiper: React.FC = () => {
 const styles = StyleSheet.create({
   container: { flex: 1 },
 
-    content: {
+  content: {
     flex: 1,
     // Let the Animated.View’s bgColor show through
     backgroundColor: "transparent",
@@ -216,9 +224,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    // If you want the animated background even in loading/empty states,
-    // also make this transparent (or just remove the backgroundColor).
-    backgroundColor: "transparent",
+    backgroundColor: "#ffffffff",
+  },
+  centerInner: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   swiperWrap: {
@@ -232,18 +243,6 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     borderRadius: 16,
     overflow: "hidden",
-  },
-
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#ffffffff",
-  },
-  centerInner: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
   },
 
   loadingText: { marginTop: 8, color: "#ccc" },
