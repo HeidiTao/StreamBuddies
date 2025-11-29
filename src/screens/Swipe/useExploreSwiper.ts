@@ -28,23 +28,19 @@ const useExploreSwiper = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState<number | null>(null);
 
-  // This ref is used by ExploreSwiper to call swipeLeft / swipeRight
+  // Used by ExploreSwiper to call swipeLeft / swipeRight
   const swiperRef = useRef<Swiper<MediaItem>>(null);
 
-  // Animated background values, used in ExploreSwiper
+  // Animated background values
   const bgValue = useRef(new Animated.Value(0)).current;
   const upValue = useRef(new Animated.Value(0)).current;
 
   const tmdbToken = process.env.EXPO_PUBLIC_TMDB_READ_TOKEN;
   const tmdbApiKey = process.env.EXPO_PUBLIC_TMDB_API_KEY;
 
-  const headers: HeadersInit = tmdbToken
-    ? { accept: "application/json", Authorization: `Bearer ${tmdbToken}` }
-    : { accept: "application/json" };
-
   /**
-   * Fetch TMDB discover results for movies or TV.
-   * If append = true, append to existing deck (for future pagination).
+   * Single-page TMDB fetch (movies or TV).
+   * Very close to your original logic.
    */
   const fetchDiscover = useCallback(
     async (media: MediaType, pageToLoad: number = 1, append: boolean = false) => {
@@ -71,6 +67,11 @@ const useExploreSwiper = () => {
         ? `${baseUrl}?${params.toString()}`
         : `${baseUrl}?${params.toString()}&api_key=${tmdbApiKey ?? ""}`;
 
+      // 👉 headers are created *inside* the function, so they are not in any deps
+      const headers: HeadersInit = tmdbToken
+        ? { accept: "application/json", Authorization: `Bearer ${tmdbToken}` }
+        : { accept: "application/json" };
+
       try {
         const res = await fetch(url, { headers });
         const data = await res.json();
@@ -85,10 +86,10 @@ const useExploreSwiper = () => {
           release_date: item.release_date ?? item.first_air_date,
         }));
 
-        setTotalPages(
-          typeof data.total_pages === "number" ? data.total_pages : null
-        );
+        const total =
+          typeof data.total_pages === "number" ? data.total_pages : null;
 
+        setTotalPages(total);
         setDeck((prev) => (append ? [...prev, ...results] : results));
         setPage(pageToLoad);
         setCurrentIndex(0);
@@ -100,10 +101,23 @@ const useExploreSwiper = () => {
         else setIsLoadingMore(false);
       }
     },
-    [tmdbApiKey, tmdbToken]
+    [tmdbToken, tmdbApiKey]
   );
 
-  // Initial + mediaType change
+  /**
+   * Lightweight refresh:
+   * - Go to the next page if possible
+   * - Otherwise wrap back to page 1
+   * - Exactly ONE network call
+   */
+  const refreshDeck = useCallback(async () => {
+    const nextPage =
+      totalPages && page < totalPages ? page + 1 : 1;
+
+    await fetchDiscover(mediaType, nextPage, false);
+  }, [fetchDiscover, mediaType, page, totalPages]);
+
+  // Initial load + when mediaType changes
   useEffect(() => {
     fetchDiscover(mediaType, 1, false);
   }, [fetchDiscover, mediaType]);
@@ -116,12 +130,6 @@ const useExploreSwiper = () => {
     setTotalPages(null);
     setCurrentIndex(0);
   };
-  const refreshDeck = useCallback(() => {
-    setCurrentIndex(0);
-    setPage(1);
-    setTotalPages(null);
-    fetchDiscover(mediaType, 1, false);
-  }, [fetchDiscover, mediaType]);
 
   return {
     deck,
@@ -136,7 +144,7 @@ const useExploreSwiper = () => {
     isLoadingMore,
     page,
     totalPages,
-    fetchDiscover, // if you want to trigger pagination from ExploreSwiper later
+    fetchDiscover,
     refreshDeck,
   };
 };

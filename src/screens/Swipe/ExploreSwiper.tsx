@@ -1,5 +1,4 @@
-// src/screens/Swipe/ExploreSwiper.tsx
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -35,12 +34,15 @@ const ExploreSwiper: React.FC = () => {
     bgValue,
     upValue,
     isLoadingMore,
-    refreshDeck, // 👈 use this for swipe-down
+    refreshDeck, // () => Promise<void>
   } = useExploreSwiper();
+
+  // Local state for the Refresh button only
+  const [refreshing, setRefreshing] = useState(false);
 
   const bgColor = bgValue.interpolate({
     inputRange: [-1, 0, 1],
-    outputRange: ["#d32f2f", "#ffffff", "#2e7d32"], // 👈 NEUTRAL = white
+    outputRange: ["#d32f2f", "#ffffff", "#2e7d32"], // NEUTRAL = white
   });
 
   const upOpacity = upValue.interpolate({
@@ -94,7 +96,7 @@ const ExploreSwiper: React.FC = () => {
   const navigateToLikeConfirmation = (m: MediaItem | undefined) => {
     if (!m) return;
     navigation.navigate("LikeConfirmation", {
-      movie: m,        // 👈 pass the whole media item
+      movie: m,
     });
   };
 
@@ -109,6 +111,19 @@ const ExploreSwiper: React.FC = () => {
   const handleInfoPress = () => {
     const m = deck[currentIndex];
     navigateToDetail(m);
+  };
+
+  // 🔁 Refresh: single, fast call to refreshDeck()
+  const handleRefreshPress = async () => {
+    if (refreshing) return; // guard double-taps
+    try {
+      setRefreshing(true);
+      await refreshDeck();
+      setCurrentIndex(0);
+      resetBg();
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   if (loading && !deck.length) {
@@ -144,6 +159,8 @@ const ExploreSwiper: React.FC = () => {
         onChange={(mt: MediaType) => switchMediaType(mt)}
         bottomLabel="🔥 Trending"
         onBottomPress={() => navigation.navigate("Trending")}
+        rightLabel={refreshing ? "Refreshing…" : "Refresh"}
+        onRightPress={handleRefreshPress}
       />
 
       <View style={styles.swiperWrap}>
@@ -153,7 +170,11 @@ const ExploreSwiper: React.FC = () => {
           cardStyle={styles.card}
           renderCard={(m) =>
             m ? (
-              <MovieCard title={m.title} posterPath={m.poster_path} />
+              <MovieCard
+                key={m.id}
+                title={m.title}
+                posterPath={m.poster_path}
+              />
             ) : (
               <View style={styles.centerInner}>
                 <Text style={styles.emptyText}>No more titles.</Text>
@@ -178,19 +199,22 @@ const ExploreSwiper: React.FC = () => {
           }}
           onSwipedLeft={(i) => {
             const passed = deck[i];
-            if (passed) console.log("👎 Passed:", passed.title);
+            if (passed) {
+              console.log("👎 Passed:", passed.title);
+            }
           }}
-          onSwipedTop={(i) => navigateToDetail(deck[i])}
+          onSwipedTop={(i) => {
+            const card = deck[i];
+            navigateToDetail(card);
+          }}
           onSwipedBottom={() => {
-            // 👇 swipe down → refresh
-            refreshDeck();
+            // optional: make swipe-down also trigger refresh
+            handleRefreshPress();
           }}
           verticalSwipe={true}
-          // NOTE: allow bottom swipe now, since we want to use it
-          // disableBottomSwipe={true}
           onTapCard={(i) => navigateToDetail(deck[i])}
           onSwipedAborted={() => {
-            resetBg(); // 👈 ensure color resets when swipe doesn’t complete
+            resetBg();
           }}
         />
       </View>
@@ -216,7 +240,6 @@ const styles = StyleSheet.create({
 
   content: {
     flex: 1,
-    // Let the Animated.View’s bgColor show through
     backgroundColor: "transparent",
   },
 

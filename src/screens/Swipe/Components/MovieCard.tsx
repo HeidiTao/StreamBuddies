@@ -1,41 +1,92 @@
-// src/screens/Swipe/MovieCard.tsx
-import React from "react";
-import { View, Text, Image, StyleSheet, Dimensions } from "react-native";
-
-const { width } = Dimensions.get("window");
-const CARD_W = Math.min(width * 0.9, 420);
-const CARD_H = CARD_W * 1.5;
+// src/screens/Swipe/Components/MovieCard.tsx
+import React, { useState } from "react";
+import { View, Text, StyleSheet, Image, ActivityIndicator } from "react-native";
 
 type Props = {
   title: string;
-  posterPath?: string | null;
+  posterPath: string | null;
 };
 
 const MovieCard: React.FC<Props> = ({ title, posterPath }) => {
+  const [imageLoaded, setImageLoaded] = useState(false);
+
   const posterUri = posterPath
-    ? `https://image.tmdb.org/t/p/original/${posterPath}`
-    : undefined;
+    ? { uri: `https://image.tmdb.org/t/p/w500/${posterPath}` }
+    : null;
 
   return (
     <View style={styles.card}>
-      {posterUri ? (
-        <Image source={{ uri: posterUri }} style={styles.poster} resizeMode="cover" />
-      ) : (
-        <View style={[styles.poster, styles.posterFallback]} />
-      )}
-      <View style={styles.footer}>
-        <Text style={styles.title} numberOfLines={2}>{title}</Text>
+      <View style={styles.posterWrapper}>
+        {/* Poster image (hidden until loaded) */}
+        {posterUri ? (
+          <>
+            {!imageLoaded && (
+              <View style={styles.posterPlaceholder}>
+                <ActivityIndicator />
+              </View>
+            )}
+            <Image
+              source={posterUri}
+              style={styles.posterImage}
+              resizeMode="cover"
+              onLoadEnd={() => setImageLoaded(true)}
+            />
+          </>
+        ) : (
+          <View style={styles.posterPlaceholder}>
+            <Text style={styles.posterPlaceholderText}>No poster</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Title – always correct for the current movie */}
+      <View style={styles.titleBar}>
+        <Text
+          style={styles.title}
+          numberOfLines={2}
+          ellipsizeMode="tail"
+        >
+          {title}
+        </Text>
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  card: { width: CARD_W, height: CARD_H, borderRadius: 18, overflow: "hidden", backgroundColor: "#111" },
-  poster: { width: "100%", height: "100%" },
-  posterFallback: { backgroundColor: "#222" },
-  footer: { position: "absolute", bottom: 0, width: "100%", padding: 12, backgroundColor: "rgba(0,0,0,0.45)" },
-  title: { color: "#fff", fontSize: 18, fontWeight: "800" },
+  card: {
+    flex: 1,
+    borderRadius: 16,
+    overflow: "hidden",
+    backgroundColor: "#ffffff",
+  },
+  posterWrapper: {
+    flex: 1,
+    backgroundColor: "#e0e0e0",
+  },
+  posterImage: {
+    width: "100%",
+    height: "100%",
+  },
+  posterPlaceholder: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  posterPlaceholderText: {
+    color: "#555",
+    fontSize: 12,
+  },
+  titleBar: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "#ffffff",
+  },
+  title: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#111",
+  },
 });
 
 export default MovieCard;
