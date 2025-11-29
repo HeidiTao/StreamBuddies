@@ -1,4 +1,5 @@
 import { WatchlistDoc, GroupDoc } from "../sample_structs";
+import type { MediaType, MediaItem } from "../screens/Swipe/useExploreSwiper";
 
 // navigation parameters passed between pages
 export type RootStackParamList = {
@@ -10,7 +11,7 @@ export type RootStackParamList = {
     };
     Trending:undefined;
     Search: undefined;
-
+    LikeConfirmation: { movie: MediaItem };
     Lists: undefined;
     ListDetail: {
         list: WatchlistDoc

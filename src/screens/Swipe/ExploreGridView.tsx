@@ -1,5 +1,5 @@
 // src/screens/Swipe/ExploreGridView.tsx
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../../navigation/types";
 import type { MediaType } from "./useExploreSwiper";
-import MediaToggleBar from "./MediaToggleBar";   // 👈 use shared toggle bar
+import MediaToggleBar from "./Components/MediaToggleBar";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "Trending">;
 
@@ -38,13 +38,12 @@ const ExploreGridView: React.FC = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState<number | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const listRef = useRef<FlatList<MediaItem>>(null);
 
   const tmdbToken = process.env.EXPO_PUBLIC_TMDB_READ_TOKEN;
   const tmdbApiKey = process.env.EXPO_PUBLIC_TMDB_API_KEY;
-
-  const headers: HeadersInit = tmdbToken
-    ? { accept: "application/json", Authorization: `Bearer ${tmdbToken}` }
-    : { accept: "application/json" };
 
   const fetchPage = useCallback(
     async (type: MediaType, pageToLoad: number = 1, append: boolean = false) => {
@@ -67,6 +66,10 @@ const ExploreGridView: React.FC = () => {
       const url = tmdbToken
         ? `${baseUrl}?${params.toString()}`
         : `${baseUrl}?${params.toString()}&api_key=${tmdbApiKey ?? ""}`;
+
+      const headers: HeadersInit = tmdbToken
+        ? { accept: "application/json", Authorization: `Bearer ${tmdbToken}` }
+        : { accept: "application/json" };
 
       try {
         const res = await fetch(url, { headers });
@@ -125,6 +128,24 @@ const ExploreGridView: React.FC = () => {
     });
   };
 
+  const handleRefreshPress = async () => {
+    if (refreshing) return;
+    try {
+      setRefreshing(true);
+
+      // 👇 go to next page, or wrap to 1
+      const nextPage =
+        totalPages && page < totalPages ? page + 1 : 1;
+
+      await fetchPage(mediaType, nextPage, false);
+
+      // scroll back to top so it feels like a fresh grid
+      listRef.current?.scrollToOffset({ offset: 0, animated: true });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const renderItem = ({ item }: { item: MediaItem }) => (
     <TouchableOpacity
       style={styles.posterWrapper}
@@ -157,16 +178,19 @@ const ExploreGridView: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Reuse MediaToggleBar with a "Swipe" button */}
+      {/* Media toggle & Swipe + Refresh row */}
       <MediaToggleBar
         mediaType={mediaType}
         onChange={handleChangeMediaType}
         bottomLabel="Swipe"
-        onBottomPress={() => navigation.goBack()} // 👈 back to swiper
+        onBottomPress={() => navigation.goBack()} // back to swiper
+        rightLabel={refreshing ? "Refreshing…" : "Refresh"}
+        onRightPress={handleRefreshPress}
       />
 
       {/* Grid of posters */}
       <FlatList
+        ref={listRef}
         data={items}
         keyExtractor={(item) => item.id.toString()}
         numColumns={3}

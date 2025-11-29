@@ -1,11 +1,20 @@
-// src/screens/LikeConfirmationView.tsx
+// src/screens/Swipe/LikeConfirmationView.tsx
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+} from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RouteProp } from "@react-navigation/native";
-import type { RootStackParamList } from "../navigation/types";
-import AddToWatchlistModal from "../components/AddToWatchlistModal";
+import type { RootStackParamList } from "../../navigation/types";
+import AddToListButton from "./Components/AddToListButton";
+import type { MediaItem } from "./useExploreSwiper"; // purely for typing
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "LikeConfirmation">;
 type Route = RouteProp<RootStackParamList, "LikeConfirmation">;
@@ -29,18 +38,19 @@ const posterUri = (p?: string | null) =>
 const LikeConfirmationView: React.FC = () => {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const { movie } = route.params;
+  const { movie } = route.params as { movie: MediaItem }; // 👈 now defined
 
   const [providers, setProviders] = useState<string[]>([]);
   const [loadingProviders, setLoadingProviders] = useState(true);
-  const [showWatchlistModal, setShowWatchlistModal] = useState(false);
 
   const tmdbToken = process.env.EXPO_PUBLIC_TMDB_READ_TOKEN;
   const tmdbApiKey = process.env.EXPO_PUBLIC_TMDB_API_KEY;
 
   const headers: HeadersInit = useMemo(
     () =>
-      tmdbToken ? { accept: "application/json", Authorization: `Bearer ${tmdbToken}` } : { accept: "application/json" },
+      tmdbToken
+        ? { accept: "application/json", Authorization: `Bearer ${tmdbToken}` }
+        : { accept: "application/json" },
     [tmdbToken]
   );
 
@@ -51,13 +61,17 @@ const LikeConfirmationView: React.FC = () => {
     });
   }, [navigation]);
 
+  // Load streaming providers
   useEffect(() => {
     let mounted = true;
 
     (async () => {
       try {
         setLoadingProviders(true);
-        const resp = await fetch(providersUrl(movie.id, tmdbToken ? undefined : tmdbApiKey), { headers });
+        const resp = await fetch(
+          providersUrl(movie.id, tmdbToken ? undefined : tmdbApiKey),
+          { headers }
+        );
         const json: ProvidersResp = await resp.json();
         if (!resp.ok) throw new Error(`Providers failed: ${resp.status}`);
 
@@ -86,13 +100,19 @@ const LikeConfirmationView: React.FC = () => {
     Alert.alert("Start watching", message);
   };
 
+  const handleAddToList = () => {
+    // Easiest: send them to MovieDetail where the watchlist modal already lives
+    navigation.navigate("MovieDetail", {
+      id: movie.id,
+      title: movie.title,
+      mediaType: movie.media_type as any, // make sure MediaItem.media_type matches your MediaType union
+    });
+  };
+
   return (
     <View style={styles.container}>
-      <AddToWatchlistModal
-        movieId={movie.id}
-        visible={showWatchlistModal}
-        onClose={() => setShowWatchlistModal(false)}
-      />
+      {/* Shared Add to List button */}
+      <AddToListButton onPress={handleAddToList} style={{ marginBottom: 22 }} />
 
       <View style={styles.content}>
         <Text style={styles.title}>You liked</Text>
@@ -107,21 +127,25 @@ const LikeConfirmationView: React.FC = () => {
         )}
 
         <View style={styles.buttonStack}>
-          <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={() => setShowWatchlistModal(true)}>
-            <Text style={styles.buttonText}>Add to watchlist</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={[styles.button, styles.secondaryButton]} onPress={() => navigation.goBack()}>
+          {/* Keep swiping → go back to Explore */}
+          <TouchableOpacity
+            style={[styles.button, styles.secondaryButton]}
+            onPress={() => navigation.goBack()}
+          >
             <Text style={styles.buttonText}>Keep swiping</Text>
           </TouchableOpacity>
 
+          {/* Start watching → show providers */}
           {loadingProviders ? (
             <View style={[styles.button, styles.disabledButton]}>
               <ActivityIndicator color="#fff" />
             </View>
           ) : (
             hasStreaming && (
-              <TouchableOpacity style={[styles.button, styles.startButton]} onPress={handleStartWatching}>
+              <TouchableOpacity
+                style={[styles.button, styles.startButton]}
+                onPress={handleStartWatching}
+              >
                 <Text style={styles.buttonText}>Start watching</Text>
               </TouchableOpacity>
             )
@@ -141,7 +165,13 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   title: { color: "#b9f6ca", fontSize: 18, marginBottom: 4 },
-  movieTitle: { color: "#fff", fontSize: 28, fontWeight: "800", marginBottom: 24, textAlign: "center" },
+  movieTitle: {
+    color: "#fff",
+    fontSize: 28,
+    fontWeight: "800",
+    marginBottom: 24,
+    textAlign: "center",
+  },
   poster: {
     width: 240,
     height: 360,
@@ -166,7 +196,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
   },
-  primaryButton: { backgroundColor: "#2e7d32" },
   secondaryButton: { backgroundColor: "#388e3c" },
   startButton: { backgroundColor: "#00c853" },
   disabledButton: { backgroundColor: "rgba(255,255,255,0.25)" },
