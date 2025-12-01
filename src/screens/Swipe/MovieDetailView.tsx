@@ -1,16 +1,11 @@
-// src/screens/MovieDetailView.tsx
 import React, { useEffect, useMemo, useState } from "react";
-import { Modal, TextInput } from "react-native";
 import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Image, TouchableOpacity } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RouteProp } from "@react-navigation/native";
 import type { RootStackParamList } from "../navigation/types";
-import { query, collection, getDocs, setDoc, doc, Timestamp } from "firebase/firestore";
-import { Ionicons } from "@expo/vector-icons"; 
-import { db } from "../../../config/firebase";
+import { Ionicons } from "@expo/vector-icons";
 import AddToListButton from "./Components/AddToListButton";
-
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "MovieDetail">;
 type Route = RouteProp<RootStackParamList, "MovieDetail">;
@@ -73,32 +68,27 @@ const MovieDetailView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [movie, setMovie] = useState<MovieDetails | null>(null);
   const [providers, setProviders] = useState<string[]>([]);
-  const [showListModal, setShowListModal] = useState(false);
-  const [userWatchLists, setUserWatchLists] = useState<any[]>([]);
-  const [addListNotes, setAddListNotes] = useState("");
 
   useEffect(() => {
-  navigation.setOptions({
-    title: title ?? "Details",
-    headerBackTitleVisible: false,
-    headerLeft: () => (
-      <TouchableOpacity
-        onPress={() => {
-          // Prefer popping if we can…
-          if (navigation.canGoBack()) {
-            navigation.goBack();
-          } else {
-            // …but ALWAYS fall back to the grid (Trending) if not
-            navigation.navigate("Trending");
-          }
-        }}
-        style={{ paddingHorizontal: 8 }}
-      >
-        <Ionicons name="chevron-back" size={24} color="#000000ff" />
-      </TouchableOpacity>
-    ),
-  });
-}, [navigation, title]);
+    navigation.setOptions({
+      title: title ?? "Details",
+      headerBackTitleVisible: false,
+      headerLeft: () => (
+        <TouchableOpacity
+          onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate("Trending");
+            }
+          }}
+          style={{ paddingHorizontal: 8 }}
+        >
+          <Ionicons name="chevron-back" size={24} color="#000000ff" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, title]);
 
   useEffect(() => {
     (async () => {
@@ -134,32 +124,11 @@ const MovieDetailView: React.FC = () => {
     })();
   }, [id, mediaType, tmdbApiKey, tmdbToken]);
 
-  useEffect(() => {
-    if (showListModal) {
-      const q = query(collection(db, `watchLists/`));
-      getDocs(q).then((snap) => {
-        const lists = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setUserWatchLists(lists);
-      });
-      console.log("acquired lists");
-    }
-  }, [showListModal]);
-
   const genreList = useMemo(
     () => (movie?.genres ?? []).map((g) => g.name).join(", "),
     [movie?.genres]
   );
   const thumb = posterUri(movie?.poster_path);
-
-  const handleAddToList = (list_id: string, add_note: string) => {
-    const itemRef = doc(db, `watchLists/${list_id}/items/${id}`);
-    setDoc(itemRef, {
-      added_by: 0, // TODO: adjust this to current user after user is set up
-      added_at: Timestamp.fromDate(new Date()),
-      notes: add_note,
-    });
-    setShowListModal(false);
-  };
 
   if (loading || !movie) {
     return (
@@ -176,50 +145,14 @@ const MovieDetailView: React.FC = () => {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-
-        {/* Add to list modal */}
-        <Modal visible={showListModal} transparent animationType="slide">
-        <View style={styles.addToListModal} pointerEvents="box-none">
-          <View style={styles.modalContent} pointerEvents="auto">
-              <Text style={styles.modalTitle}>Add to Watchlist</Text>
-
-              <TextInput
-                style={styles.modalNotes}
-                placeholder="notes for adding to list"
-                value={addListNotes}
-                onChangeText={(text) => setAddListNotes(text)}
-              />
-
-              {userWatchLists.map(list => (
-                <TouchableOpacity
-                  key={list.id}
-                  onPress={() => handleAddToList(list.id, addListNotes)}
-                  style={styles.modalListOptions}
-                >
-                  <Text style={styles.modalListOptionText}>{list.name}</Text>
-                </TouchableOpacity>
-              ))}
-
-              <TouchableOpacity
-                onPress={() => setShowListModal(false)}
-                style={styles.modelCancelButton}
-              >
-                <Text style={styles.addToListText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-
-        {/* Centered larger poster */}
         {thumb && (
           <Image source={{ uri: thumb }} style={styles.poster} resizeMode="cover" />
         )}
 
         <Text style={styles.title}>{displayTitle}</Text>
 
-        <ScrollView>
-          <AddToListButton onPress={() => setShowListModal(true)} />
-        </ScrollView>
+        {/* Shared Add to List button (FireStore handled inside component now) */}
+        <AddToListButton itemId={id} />
 
         {/* Section: Release Date / First Air Date */}
         <View style={styles.section}>
@@ -265,7 +198,12 @@ const MovieDetailView: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#000" },
-  center: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#000" },
+  center: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#000",
+  },
   loadingText: { marginTop: 8, color: "#ccc" },
 
   content: { padding: 16, paddingBottom: 32, alignItems: "center" },
@@ -295,66 +233,13 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     marginBottom: 6,
   },
-  bubbleText: { color: "#ddd", fontSize: 12, fontWeight: "700", letterSpacing: 0.4 },
-  value: { color: "#fff", fontSize: 16, lineHeight: 22, textAlign: "left" },
-
-  addToListbubble: {
-    alignSelf: "center",
-    backgroundColor: "#474d9cff",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginBottom: 6,
-  },
-  addToListText: {
+  bubbleText: {
     color: "#ddd",
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "700",
     letterSpacing: 0.4,
   },
-
-  addToListModal: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContent: {
-    backgroundColor: "#787dc6f4",
-    padding: 30,
-    borderRadius: 8,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    margin: 10,
-  },
-  modalText: {
-    fontSize: 16,
-  },
-  modelCancelButton: {
-    marginTop: 15,
-    alignItems: "center",
-    borderRadius: 8,
-    padding: 8,
-    backgroundColor: "#9296c9ff",
-  },
-  modalListOptions: {
-    backgroundColor: "#959adbff",
-    margin: 3,
-    borderRadius: 5,
-  },
-  modalListOptionText: {
-    margin: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    fontSize: 14,
-  },
-  modalNotes: {
-    backgroundColor: "#9296c9ff",
-    padding: 5,
-    marginBottom: 15,
-    borderRadius: 2,
-  },
+  value: { color: "#fff", fontSize: 16, lineHeight: 22, textAlign: "left" },
 });
 
 export default MovieDetailView;
