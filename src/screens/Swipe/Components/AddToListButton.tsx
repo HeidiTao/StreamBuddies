@@ -1,3 +1,4 @@
+// src/screens/Swipe/Components/AddToListButton.tsx
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -17,13 +18,13 @@ import {
   Timestamp,
 } from "firebase/firestore";
 
-// ⚠️ Adjust this relative path if your config is elsewhere
+// ⚠️ Adjust this path if your config is in a different place
 import { db } from "../../../../config/firebase";
 
 type AddToListButtonProps = {
-  itemId: number;                // TMDB id of the movie/show
-  style?: any;                   // optional external style for positioning
-  label?: string;                // override button label if needed
+  itemId: number;       // TMDB id of the movie/show
+  style?: any;          // optional extra styles (e.g. marginTop)
+  label?: string;
 };
 
 const AddToListButton: React.FC<AddToListButtonProps> = ({
@@ -49,7 +50,7 @@ const AddToListButton: React.FC<AddToListButtonProps> = ({
   const handleAddToListConfirm = (listId: string, note: string) => {
     const itemRef = doc(db, `watchLists/${listId}/items/${itemId}`);
     setDoc(itemRef, {
-      added_by: 0, // TODO: replace with current user id once auth is wired
+      added_by: 0, // TODO: swap for current user once auth exists
       added_at: Timestamp.fromDate(new Date()),
       notes: note,
     });
@@ -60,7 +61,7 @@ const AddToListButton: React.FC<AddToListButtonProps> = ({
 
   return (
     <>
-      {/* Trigger button */}
+      {/* Trigger button: width = text + padding */}
       <TouchableOpacity
         onPress={() => setShowListModal(true)}
         style={[styles.addToListButton, style]}
@@ -99,7 +100,7 @@ const AddToListButton: React.FC<AddToListButtonProps> = ({
               }}
               style={styles.modalCancelButton}
             >
-              <Text style={styles.addToListText}>Cancel</Text>
+              <Text style={styles.modalCancelText}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -109,23 +110,22 @@ const AddToListButton: React.FC<AddToListButtonProps> = ({
 };
 
 const styles = StyleSheet.create({
-  // Button styling (pulled from your MovieDetailView)
+  // Button: intrinsic width
   addToListButton: {
-    alignSelf: "center",
-    backgroundColor: "#474d9cff",
+    alignSelf: "center",          // center horizontally; no stretch
+    backgroundColor: "#eac4d5",
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
-    marginBottom: 6,
   },
   addToListText: {
-    color: "#ddd",
+    color: "#000000",
     fontSize: 14,
     fontWeight: "700",
     letterSpacing: 0.4,
   },
 
-  // Modal styling (based on MovieDetailView)
+  // Modal styling
   modalRoot: {
     flex: 1,
     justifyContent: "center",
@@ -168,6 +168,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 8,
     backgroundColor: "#9296c9ff",
+  },
+  modalCancelText: {
+    color: "#fff",
+    fontWeight: "700",
   },
 });
 
