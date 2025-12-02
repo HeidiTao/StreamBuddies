@@ -18,12 +18,11 @@ import {
   Timestamp,
 } from "firebase/firestore";
 
-// ⚠️ Adjust this path if your config is in a different place
 import { db } from "../../../../config/firebase";
 
 type AddToListButtonProps = {
-  itemId: number;       // TMDB id of the movie/show
-  style?: any;          // optional extra styles (e.g. marginTop)
+  itemId: number; // TMDB id of the movie/show
+  style?: any; // optional extra styles (e.g. marginTop)
   label?: string;
 };
 
@@ -41,7 +40,19 @@ const AddToListButton: React.FC<AddToListButtonProps> = ({
     if (showListModal) {
       const q = query(collection(db, "watchLists"));
       getDocs(q).then((snap) => {
-        const lists = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const lists = snap.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          // ✅ filter out lists with blank / missing names
+          .filter(
+            (list) =>
+              typeof list.name === "string" &&
+              list.name.trim().length > 0
+          )
+          // ✅ sort alphabetically (case-insensitive)
+          .sort((a, b) =>
+            a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+          );
+
         setUserWatchLists(lists);
       });
     }
@@ -70,15 +81,19 @@ const AddToListButton: React.FC<AddToListButtonProps> = ({
       </TouchableOpacity>
 
       {/* Modal */}
-      <Modal visible={showListModal} transparent animationType="slide">
-        <View style={styles.modalRoot} pointerEvents="box-none">
-          <View style={styles.modalContent} pointerEvents="auto">
+      <Modal
+        visible={showListModal}
+        transparent={false} // ✅ solid background instead of translucent
+        animationType="slide"
+      >
+        <View style={styles.modalRoot}>
+          <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Add to Watchlist</Text>
 
             <TextInput
               style={styles.modalNotes}
               placeholder="notes for adding to list"
-              placeholderTextColor="#e0e0ff"
+              placeholderTextColor="#999999"
               value={addListNotes}
               onChangeText={setAddListNotes}
             />
@@ -112,7 +127,7 @@ const AddToListButton: React.FC<AddToListButtonProps> = ({
 const styles = StyleSheet.create({
   // Button: intrinsic width
   addToListButton: {
-    alignSelf: "center",          // center horizontally; no stretch
+    alignSelf: "center", // center horizontally; no stretch
     backgroundColor: "#eac4d5",
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -130,48 +145,60 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#ffffff", // ✅ solid white background
   },
   modalContent: {
-    backgroundColor: "#787dc6f4",
+    backgroundColor: "#ffffff", // ✅ solid white card
     padding: 30,
-    borderRadius: 8,
+    borderRadius: 12,
     minWidth: "80%",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: "700",
-    margin: 10,
-    color: "#fff",
+    marginBottom: 16,
+    color: "#000",
+    textAlign: "center",
   },
   modalNotes: {
-    backgroundColor: "#9296c9ff",
-    padding: 5,
-    marginBottom: 15,
-    borderRadius: 2,
-    color: "#fff",
+    backgroundColor: "#f2f2f2",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 16,
+    borderRadius: 6,
+    color: "#000",
+    fontSize: 14,
   },
+  // ✅ List buttons: #809BCE with black text
   modalListOptions: {
-    backgroundColor: "#959adbff",
-    margin: 3,
-    borderRadius: 5,
+    backgroundColor: "#809BCE",
+    marginVertical: 4,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
   },
   modalListOptionText: {
-    margin: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
     fontSize: 14,
-    color: "#000",
+    color: "#000000",
+    textAlign: "center",
+    fontWeight: "600",
   },
+  // ✅ Cancel button: light red
   modalCancelButton: {
-    marginTop: 15,
+    marginTop: 20,
     alignItems: "center",
     borderRadius: 8,
-    padding: 8,
-    backgroundColor: "#9296c9ff",
+    paddingVertical: 10,
+    backgroundColor: "#ffb3b3",
   },
   modalCancelText: {
-    color: "#fff",
+    color: "#000000",
     fontWeight: "700",
+    fontSize: 14,
   },
 });
 
