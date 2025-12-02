@@ -40,6 +40,9 @@ const ExploreSwiper: React.FC = () => {
   // Local state for the Refresh button only
   const [refreshing, setRefreshing] = useState(false);
 
+  // 🔑 Used to force-remount Swiper when we refresh the deck
+  const [deckVersion, setDeckVersion] = useState(0);
+
   const bgColor = bgValue.interpolate({
     inputRange: [-1, 0, 1],
     outputRange: ["#d32f2f", "#ffffff", "#2e7d32"], // NEUTRAL = white
@@ -119,11 +122,19 @@ const ExploreSwiper: React.FC = () => {
     try {
       setRefreshing(true);
       await refreshDeck();
+      // reset our index and force Swiper to remount so its internal index resets too
       setCurrentIndex(0);
+      setDeckVersion((v) => v + 1);
       resetBg();
     } finally {
       setRefreshing(false);
     }
+  };
+
+  // 🔁 Auto-refill when you swipe the last card
+  const handleSwipedAll = async () => {
+    if (refreshing || isLoadingMore) return;
+    await handleRefreshPress();
   };
 
   if (loading && !deck.length) {
@@ -165,6 +176,7 @@ const ExploreSwiper: React.FC = () => {
 
       <View style={styles.swiperWrap}>
         <Swiper
+          key={deckVersion} // 👈 force a fresh Swiper when the deck refreshes
           ref={swiperRef}
           cards={deck}
           cardStyle={styles.card}
@@ -216,6 +228,8 @@ const ExploreSwiper: React.FC = () => {
           onSwipedAborted={() => {
             resetBg();
           }}
+          // 👇 Auto-refresh when the last card is swiped
+          onSwipedAll={handleSwipedAll}
         />
       </View>
 

@@ -1,34 +1,204 @@
-// src/components/AddToListButton.tsx
-import React from "react";
-import { TouchableOpacity, Text, StyleSheet, ViewStyle } from "react-native";
+// src/screens/Swipe/Components/AddToListButton.tsx
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Modal,
+  TextInput,
+} from "react-native";
 
-type Props = {
-  onPress: () => void;
-  style?: ViewStyle;            // allows you to override/extend styling when used elsewhere
+import {
+  query,
+  collection,
+  getDocs,
+  setDoc,
+  doc,
+  Timestamp,
+} from "firebase/firestore";
+
+import { db } from "../../../../config/firebase";
+
+type AddToListButtonProps = {
+  itemId: number; // TMDB id of the movie/show
+  style?: any; // optional extra styles (e.g. marginTop)
+  label?: string;
 };
 
-const AddToListButton: React.FC<Props> = ({ onPress, style }) => {
+const AddToListButton: React.FC<AddToListButtonProps> = ({
+  itemId,
+  style,
+  label = "Add to Watchlist",
+}) => {
+  const [showListModal, setShowListModal] = useState(false);
+  const [userWatchLists, setUserWatchLists] = useState<any[]>([]);
+  const [addListNotes, setAddListNotes] = useState("");
+
+  // Fetch user watchlists when modal opens
+  useEffect(() => {
+    if (showListModal) {
+      const q = query(collection(db, "watchLists"));
+      getDocs(q).then((snap) => {
+        const lists = snap.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          // ✅ filter out lists with blank / missing names
+          .filter(
+            (list) =>
+              typeof list.name === "string" &&
+              list.name.trim().length > 0
+          )
+          // ✅ sort alphabetically (case-insensitive)
+          .sort((a, b) =>
+            a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+          );
+
+        setUserWatchLists(lists);
+      });
+    }
+  }, [showListModal]);
+
+  const handleAddToListConfirm = (listId: string, note: string) => {
+    const itemRef = doc(db, `watchLists/${listId}/items/${itemId}`);
+    setDoc(itemRef, {
+      added_by: 0, // TODO: swap for current user once auth exists
+      added_at: Timestamp.fromDate(new Date()),
+      notes: note,
+    });
+
+    setShowListModal(false);
+    setAddListNotes("");
+  };
+
   return (
-    <TouchableOpacity onPress={onPress} style={[styles.button, style]}>
-      <Text style={styles.text}>Add to List</Text>
-    </TouchableOpacity>
+    <>
+      {/* Trigger button: width = text + padding */}
+      <TouchableOpacity
+        onPress={() => setShowListModal(true)}
+        style={[styles.addToListButton, style]}
+      >
+        <Text style={styles.addToListText}>{label}</Text>
+      </TouchableOpacity>
+
+      {/* Modal */}
+      <Modal
+        visible={showListModal}
+        transparent={false} // ✅ solid background instead of translucent
+        animationType="slide"
+      >
+        <View style={styles.modalRoot}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Add to Watchlist</Text>
+
+            <TextInput
+              style={styles.modalNotes}
+              placeholder="notes for adding to list"
+              placeholderTextColor="#999999"
+              value={addListNotes}
+              onChangeText={setAddListNotes}
+            />
+
+            {userWatchLists.map((list) => (
+              <TouchableOpacity
+                key={list.id}
+                onPress={() => handleAddToListConfirm(list.id, addListNotes)}
+                style={styles.modalListOptions}
+              >
+                <Text style={styles.modalListOptionText}>{list.name}</Text>
+              </TouchableOpacity>
+            ))}
+
+            <TouchableOpacity
+              onPress={() => {
+                setShowListModal(false);
+                setAddListNotes("");
+              }}
+              style={styles.modalCancelButton}
+            >
+              <Text style={styles.modalCancelText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
-  button: {
-    alignSelf: "center",
-    backgroundColor: "#474d9cff",
+  // Button: intrinsic width
+  addToListButton: {
+    alignSelf: "center", // center horizontally; no stretch
+    backgroundColor: "#eac4d5",
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
-    marginBottom: 6,
   },
-  text: {
-    color: "#ddd",
+  addToListText: {
+    color: "#000000",
     fontSize: 14,
     fontWeight: "700",
     letterSpacing: 0.4,
+  },
+
+  // Modal styling
+  modalRoot: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#ffffff", // ✅ solid white background
+  },
+  modalContent: {
+    backgroundColor: "#ffffff", // ✅ solid white card
+    padding: 30,
+    borderRadius: 12,
+    minWidth: "80%",
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 16,
+    color: "#000",
+    textAlign: "center",
+  },
+  modalNotes: {
+    backgroundColor: "#f2f2f2",
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 16,
+    borderRadius: 6,
+    color: "#000",
+    fontSize: 14,
+  },
+  // ✅ List buttons: #809BCE with black text
+  modalListOptions: {
+    backgroundColor: "#809BCE",
+    marginVertical: 4,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  modalListOptionText: {
+    fontSize: 14,
+    color: "#000000",
+    textAlign: "center",
+    fontWeight: "600",
+  },
+  // ✅ Cancel button: light red
+  modalCancelButton: {
+    marginTop: 20,
+    alignItems: "center",
+    borderRadius: 8,
+    paddingVertical: 10,
+    backgroundColor: "#ffb3b3",
+  },
+  modalCancelText: {
+    color: "#000000",
+    fontWeight: "700",
+    fontSize: 14,
   },
 });
 
