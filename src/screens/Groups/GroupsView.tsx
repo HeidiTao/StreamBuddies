@@ -74,7 +74,8 @@ const GroupsView: React.FC<Props> = ({ navigation }) => {
             {renderGroupCircle(
               group.name,
               '#dfd6ff',
-              () => navigation.navigate('GroupDetail', { group }),
+              // Fixed: Changed from { group } to { groupId: group }
+              () => navigation.navigate('GroupDetail', { groupId: group }),
               mockInitials[idx % mockInitials.length]
             )}
           </React.Fragment>
