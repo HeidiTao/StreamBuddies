@@ -89,6 +89,22 @@ const MovieDetailSearchView = () => {
     
     const totalMinutes = (hoursNum * 60) + minutesNum;
     
+    // Validate against runtime if available
+    if (runtime > 0 && totalMinutes > runtime) {
+      const runtimeHours = Math.floor(runtime / 60);
+      const runtimeMins = runtime % 60;
+      const runtimeDisplay = runtimeHours > 0 
+        ? `${runtimeHours}h ${runtimeMins}m` 
+        : `${runtimeMins}m`;
+      
+      Alert.alert(
+        'Invalid Watch Time',
+        `You cannot log more time than the ${media_type === 'movie' ? 'movie' : 'episode'}'s length.\n\nMaximum: ${runtimeDisplay}`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
     // Log to watch stats context
     logWatchTime({
       movieId: movieId,
@@ -102,6 +118,36 @@ const MovieDetailSearchView = () => {
     Alert.alert(
       'Watch Time Logged!',
       `You watched ${hoursNum > 0 ? `${hoursNum}h ` : ''}${minutesNum}m of ${title}`,
+      [{ text: 'OK' }]
+    );
+    
+    // Reset and close modal
+    setHours('');
+    setMinutes('');
+    setShowWatchTimeModal(false);
+  };
+
+  const handleLogWholeMovie = () => {
+    if (runtime === 0) {
+      Alert.alert('Error', 'Runtime information not available for this title.');
+      return;
+    }
+
+    // Log the entire runtime
+    logWatchTime({
+      movieId: movieId,
+      title: title,
+      minutesWatched: runtime,
+      timestamp: new Date().toISOString(),
+      genres: genres,
+      media_type: media_type,
+    });
+
+    const runtimeFormatted = formatRuntime(runtime);
+    
+    Alert.alert(
+      'Watch Time Logged!',
+      `You watched the entire ${media_type === 'movie' ? 'movie' : 'episode'}: ${runtimeFormatted}`,
       [{ text: 'OK' }]
     );
     
@@ -249,7 +295,14 @@ const MovieDetailSearchView = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Log Watch Time</Text>
-            <Text style={styles.modalSubtitle}>How long did you watch?</Text>
+            <Text style={styles.modalSubtitle}>
+              How long did you watch?
+              {runtime > 0 && (
+                <Text style={{ color: '#666', fontSize: 12 }}>
+                  {'\n'}(Max: {formatRuntime(runtime)})
+                </Text>
+              )}
+            </Text>
 
             <View style={styles.timeInputContainer}>
               <View style={styles.timeInputGroup}>
@@ -276,6 +329,18 @@ const MovieDetailSearchView = () => {
                 <Text style={styles.timeLabel}>minutes</Text>
               </View>
             </View>
+
+            {/* Log Whole Movie Button */}
+            {runtime > 0 && (
+              <TouchableOpacity
+                style={styles.logWholeButton}
+                onPress={handleLogWholeMovie}
+              >
+                <Text style={styles.logWholeButtonText}>
+                  Log Whole {media_type === 'movie' ? 'Movie' : 'Episode'} ({formatRuntime(runtime)})
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <View style={styles.modalButtons}>
               <TouchableOpacity
@@ -529,6 +594,27 @@ const styles = StyleSheet.create({
   timeLabel: {
     fontSize: 14,
     color: '#666',
+  },
+  logWholeButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    marginBottom: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  logWholeButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
   },
   modalButtons: {
     flexDirection: 'row',
