@@ -65,7 +65,8 @@ export default function NewGroupView({ navigation }: Props) {
   const created = await groupRepository.createGroup(newGroup);
   console.log('Group created:', created); // Debug log
   // Navigate to the group detail so the user can immediately see the generated group code
-  navigation.navigate('GroupDetail', { group: created });
+  // Fixed: Changed from { group: created } to { groupId: created }
+  navigation.navigate('GroupDetail', { groupId: created });
     } catch (error) {
       console.error('Error creating group:', error);
       alert('Failed to create group. Please try again.');

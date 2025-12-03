@@ -4,19 +4,23 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
-import { View, Text } from "react-native";  // 👈 add this
+import { View, Text } from "react-native";
 
 import { RootStackParamList } from "./types";
 import ExploreView from "../screens/ExploreView";
 import MovieDetailView from "../screens/Swipe/MovieDetailView";
-import SearchView from "../screens/SearchView";
+import SearchView from "../screens/Search/SearchView";
 import ListsView from "../screens/Lists/ListsView";
 import ListDetailView from "../screens/Lists/ListDetailView";
 import NewListView from "../screens/Lists/NewListView";
 import GroupsView from "../screens/Groups/GroupsView";
-import ProfileView from "../screens/ProfileView";
+import ProfileView from "../screens/Profile/ProfileView";
 import ExploreGridView from "../screens/Swipe/ExploreGridView";
 import LikeConfirmationView from "../screens/Swipe/LikeConfirmationView";
+import EditProfileScreen from "../screens/Profile/EditProfileScreen";
+import WatchStatsScreen from "../screens/Profile/WatchStatsScreen";
+import MovieDetailSearchView from "../screens/Search/MovieDetailSearchView";
+import { WatchStatsProvider } from "../screens/contexts/WatchStatsContext";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
@@ -62,7 +66,7 @@ const ExploreStackScreen = () => {
           header: () => (
             <View
               style={{
-                height: 60,           // 👈 small white strip like in your “Up” mock
+                height: 60,           // 👈 small white strip like in your "Up" mock
                 backgroundColor: "#ffffff",
               }}
             />
@@ -88,7 +92,12 @@ const SearchStackScreen = () => {
       <Stack.Screen
         name="Search"
         component={SearchView}
-        options={{ title: "What do you want to watch?" }}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="MovieDetailSearch"
+        component={MovieDetailSearchView}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );
@@ -121,7 +130,21 @@ const GroupsStackScreen = () => {
 const ProfileStackScreen = () => {
   return (
     <Stack.Navigator>
-      <Stack.Screen name="Profile" component={ProfileView} options={{ title: "My Profile" }} />
+      <Stack.Screen 
+        name="Profile" 
+        component={ProfileView} 
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="EditProfile" 
+        component={EditProfileScreen} 
+        options={{ title: "Edit Profile" }} 
+      />
+      <Stack.Screen 
+        name="WatchStats" 
+        component={WatchStatsScreen} 
+        options={{ title: "Watch Statistics" }} 
+      />
     </Stack.Navigator>
   );
 };
@@ -129,31 +152,33 @@ const ProfileStackScreen = () => {
 // MARK: Tabs
 const AppNavigator: React.FC = () => {
   return (
-    <NavigationContainer>
-      <Tab.Navigator
-        initialRouteName="ExploreTab"
-        screenOptions={({ route }) => ({
-          tabBarIcon: ({ color, size }) => {
-            let iconName: keyof typeof Ionicons.glyphMap = "ellipse";
-            if (route.name === "ExploreTab") iconName = "balloon";
-            else if (route.name === "SearchTab") iconName = "search";
-            else if (route.name === "ListsTab") iconName = "bookmarks";
-            else if (route.name === "GroupsTab") iconName = "people-circle";
-            else if (route.name === "ProfileTab") iconName = "person";
-            return <Ionicons name={iconName} size={size} color={color} />;
-          },
-          headerShown: false,
-          tabBarActiveTintColor: "black",
-          tabBarInactiveTintColor: "gray",
-        })}
-      >
-        <Tab.Screen name="ExploreTab" component={ExploreStackScreen} options={{ title: "Explore" }} />
-        <Tab.Screen name="SearchTab" component={SearchStackScreen} options={{ title: "Search" }} />
-        <Tab.Screen name="ListsTab" component={ListsStackScreen} options={{ title: "Lists" }} />
-        <Tab.Screen name="GroupsTab" component={GroupsStackScreen} options={{ title: "Groups" }} />
-        <Tab.Screen name="ProfileTab" component={ProfileStackScreen} options={{ title: "Profile" }} />
-      </Tab.Navigator>
-    </NavigationContainer>
+    <WatchStatsProvider>
+      <NavigationContainer>
+        <Tab.Navigator
+          initialRouteName="ExploreTab"
+          screenOptions={({ route }) => ({
+            tabBarIcon: ({ color, size }) => {
+              let iconName: keyof typeof Ionicons.glyphMap = "ellipse";
+              if (route.name === "ExploreTab") iconName = "balloon";
+              else if (route.name === "SearchTab") iconName = "search";
+              else if (route.name === "ListsTab") iconName = "bookmarks";
+              else if (route.name === "GroupsTab") iconName = "people-circle";
+              else if (route.name === "ProfileTab") iconName = "person";
+              return <Ionicons name={iconName} size={size} color={color} />;
+            },
+            headerShown: false,
+            tabBarActiveTintColor: "black",
+            tabBarInactiveTintColor: "gray",
+          })}
+        >
+          <Tab.Screen name="ExploreTab" component={ExploreStackScreen} options={{ title: "Explore" }} />
+          <Tab.Screen name="SearchTab" component={SearchStackScreen} options={{ title: "Search" }} />
+          <Tab.Screen name="ListsTab" component={ListsStackScreen} options={{ title: "Lists" }} />
+          <Tab.Screen name="GroupsTab" component={GroupsStackScreen} options={{ title: "Groups" }} />
+          <Tab.Screen name="ProfileTab" component={ProfileStackScreen} options={{ title: "Profile" }} />
+        </Tab.Navigator>
+      </NavigationContainer>
+    </WatchStatsProvider>
   );
 };
 

@@ -35,9 +35,8 @@ const predictions = [
 ];
 
 export default function GroupDetailView({ route, navigation }: Props) {
-  const group = route.params?.group;
+  const group = route.params?.groupId;
 
-  // Prefer stored code (persisted and unique). Fall back to id-derived code.
   const code = group?.code ? String(group.code).toUpperCase() : (group?.id ? String(group.id).slice(0, 6).toUpperCase() : '');
 
   // Use group's content or fall back to defaults, always showing exactly 4
