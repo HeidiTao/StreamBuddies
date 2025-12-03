@@ -184,7 +184,7 @@ const MovieDetailView: React.FC = () => {
   movie.vote_average != null
     ? `${starString}  (${movie.vote_average.toFixed(1)}/10, ${formattedVotes} votes)`
     : "No rating";
-    
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
@@ -200,9 +200,10 @@ const MovieDetailView: React.FC = () => {
 
         {/* Meta line under title: maturity • year • star rating */}
         <Text style={styles.metaLine}>
-          {displayMaturity} • {year} • {ratingText}
+          {displayMaturity} • {year}
         </Text>
 
+        <Text style={styles.metaLine}>{ratingText}</Text>
         {/* Add to Watchlist button */}
         <View style={{ marginTop: 10, marginBottom: 6 }}>
           <AddToListButton itemId={id} />
