@@ -71,11 +71,21 @@ export default function GroupDetailView({ route, navigation }: Props) {
   };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: '#fff' }}>
+    <ScrollView style={{ flex: 1, backgroundColor: '#fff', paddingTop: 40 }}>
       {/* Header */}
-      <View style={{ padding: 18, paddingTop: 30, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(199,199,247,0.3)', borderTopLeftRadius: 12, borderTopRightRadius: 12 }}>
+      <View style={{ 
+        padding: 18, 
+        paddingTop: 70, 
+        marginTop: -40,
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        backgroundColor: 'rgba(199,199,247,0.3)', 
+        borderTopLeftRadius: 12, 
+        borderTopRightRadius: 12 
+      }}>
         <View>
-          <Text style={{ fontSize: 22, fontWeight: '600', color: '#bcbcff' }}>{group?.name ?? 'Group'}</Text>
+          <Text style={{ fontSize: 25, fontWeight: '600', color: '#bcbcff' }}>{group?.name ?? 'Group'}</Text>
           {code ? (
             <View style={{ marginTop: 6 }}>
               <Text style={{ fontSize: 12, color: '#6e7bb7' }}>Group Code</Text>
@@ -102,23 +112,8 @@ export default function GroupDetailView({ route, navigation }: Props) {
           </TouchableOpacity>
         </View>
       </View>
-      {/* Currently Watching */}
-      <View style={{ marginTop: 18, marginHorizontal: 10 }}>
-        <Text style={{ fontWeight: '600', fontSize: 16, marginBottom: 8 }}>Currently Watching {'>'}</Text>
-        <View style={{ flexDirection: 'row', paddingHorizontal: 4 }}>
-          {currentlyWatching.length > 0 ? currentlyWatching.map((item) => (
-            <View key={item.id} style={{ width: 90, marginRight: 8 }}>
-              <Image 
-                source={{ uri: getPosterUrl(item.poster_path) }} 
-                style={{ width: 90, height: 135, borderRadius: 8 }}
-                resizeMode="cover"
-              />
-              <Text style={{ fontSize: 12, textAlign: 'center', marginTop: 4 }}>{item.name || item.title}</Text>
-            </View>
-          )) : <Text>No data</Text>}
-        </View>
-      </View>
-      {/* Shared Services */}
+
+      {/* Shared Services - MOVED ABOVE Currently Watching */}
       <View style={{ marginTop: 18, marginHorizontal: 10, backgroundColor: '#f7f7ff', borderRadius: 12, padding: 10, borderWidth: 1, borderColor: '#e3e3f7' }}>
         <Text style={{ fontWeight: '500', marginBottom: 6 }}>Shared Services</Text>
         <View style={{ flexDirection: 'row' }}>
@@ -129,6 +124,24 @@ export default function GroupDetailView({ route, navigation }: Props) {
           ))}
         </View>
       </View>
+
+      {/* Currently Watching */}
+      <View style={{ marginTop: 18, marginHorizontal: 10 }}>
+        <Text style={{ fontWeight: '600', fontSize: 16, marginBottom: 8 }}>Currently Watching {'>'}</Text>
+        <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
+          {currentlyWatching.length > 0 ? currentlyWatching.map((item) => (
+            <View key={item.id} style={{ width: 90, marginRight: 8 }}>
+              <Image 
+                source={{ uri: getPosterUrl(item.poster_path) }} 
+                style={{ width: 90, height: 135, borderRadius: 8 }}
+                resizeMode="cover"
+              />
+              <Text style={{ fontSize: 12, textAlign: 'center', marginTop: 4 }}>{item.name || item.title}</Text>
+            </View>
+          )) : <Text>No data</Text>}
+        </ScrollView>
+      </View>
+
       {/* Finished */}
       <View style={{ marginTop: 18, marginHorizontal: 10 }}>
         <Text style={{ fontWeight: '600', fontSize: 16, marginBottom: 8 }}>Finished {'>'}</Text>

@@ -23,6 +23,11 @@ export type RootStackParamList = {
   
   // Search Stack
   Search: undefined;
+  ServiceResults: {
+    serviceName: string;
+    serviceColor: string;
+    providerId: string;
+  };
   MovieDetailSearch: {
     movieId: number;
     title: string;

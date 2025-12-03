@@ -20,6 +20,7 @@ import LikeConfirmationView from "../screens/Swipe/LikeConfirmationView";
 import EditProfileScreen from "../screens/Profile/EditProfileScreen";
 import WatchStatsScreen from "../screens/Profile/WatchStatsScreen";
 import MovieDetailSearchView from "../screens/Search/MovieDetailSearchView";
+import ServiceResultsScreen from "../screens/Search/ServiceResultsScreen";
 import { WatchStatsProvider } from "../screens/contexts/WatchStatsContext";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -95,6 +96,16 @@ const SearchStackScreen = () => {
         options={{ headerShown: false }}
       />
       <Stack.Screen
+        name="ServiceResults"
+        component={ServiceResultsScreen}
+        options={{ 
+          headerShown: false,
+          presentation: 'card',
+          gestureEnabled: true,
+          gestureDirection: 'horizontal',
+        }}
+      />
+      <Stack.Screen
         name="MovieDetailSearch"
         component={MovieDetailSearchView}
         options={{ headerShown: false }}
@@ -119,8 +130,8 @@ import JoinGroupView from "../screens/Groups/JoinGroupView";
 const GroupsStackScreen = () => {
   return (
     <Stack.Navigator>
-  <Stack.Screen name="Groups" component={GroupsView} options={{ title: "My Groups" }} />
-  <Stack.Screen name="GroupDetail" component={GroupDetailView} options={{ title: "Group Details" }} />
+  <Stack.Screen name="Groups" component={GroupsView} options={{ headerShown: false }} />
+  <Stack.Screen name="GroupDetail" component={GroupDetailView} options={{ headerShown: false }} />
   <Stack.Screen name="JoinGroup" component={JoinGroupView} options={{ title: "Join Group" }} />
   <Stack.Screen name="NewGroup" component={NewGroupView} options={{ title: "Create New Group" }} />
     </Stack.Navigator>

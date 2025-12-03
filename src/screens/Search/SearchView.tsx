@@ -35,6 +35,7 @@ const SearchScreen = () => {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [showingServiceResults, setShowingServiceResults] = useState(false);
 
   const tmdbToken = process.env.EXPO_PUBLIC_TMDB_READ_TOKEN;
   const tmdbApiKey = process.env.EXPO_PUBLIC_TMDB_API_KEY;
@@ -149,9 +150,11 @@ const SearchScreen = () => {
   };
 
   const handleServicePress = (service: StreamingService) => {
-    setSelectedService(service.id);
-    setSearchQuery('');
-    searchByProvider(service.providerId);
+    (navigation as any).navigate('ServiceResults', {
+      serviceName: service.name,
+      serviceColor: service.color,
+      providerId: service.providerId,
+    });
   };
 
   const handleResultPress = async (result: SearchResult) => {
@@ -202,13 +205,19 @@ const SearchScreen = () => {
     }
   };
 
+  const handleBackToSearch = () => {
+    setShowingServiceResults(false);
+    setSearchResults([]);
+    setSelectedService(null);
+  };
+
   return (
     <View style={styles.container}>
       {/* Gradient Header */}
       <LinearGradient
-        colors={['#FFB3D9', '#B3D9FF']}
+        colors={['#E8D5F0', '#D5E8F8']}
         start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
+        end={{ x: 1, y: 0 }}
         style={styles.gradientHeader}
       >
         {/* Search Bar */}
@@ -233,8 +242,19 @@ const SearchScreen = () => {
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
       >
+        {/* Back Button when showing service results */}
+        {showingServiceResults && (
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={handleBackToSearch}
+          >
+            <Ionicons name="arrow-back" size={24} color="#666" />
+            <Text style={styles.backButtonText}>Back to Search</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Streaming Service Buttons */}
-        {searchResults.length === 0 && !loading && (
+        {searchResults.length === 0 && !loading && !showingServiceResults && (
           <>
             {streamingServices.map((service) => (
               <TouchableOpacity
@@ -455,6 +475,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
     marginTop: 8,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 12,
+    marginBottom: 20,
+    alignSelf: 'flex-start',
+  },
+  backButtonText: {
+    fontSize: 16,
+    color: '#666',
+    marginLeft: 8,
+    fontWeight: '500',
   },
 });
 
