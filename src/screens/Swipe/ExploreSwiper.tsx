@@ -12,15 +12,16 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../../navigation/types";
 
 import MovieCard from "./Components/MovieCard";
+import type { FilterState } from "./Components/FilterButton";
 import MediaToggleBar from "./Components/MediaToggleBar";
 import SwipeActionBar from "./Components/SwipeActionBar";
 import useExploreSwiper, { MediaType, MediaItem } from "./useExploreSwiper";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "Explore">;
-
 const YELLOW = "#ffca28";
 
 const ExploreSwiper: React.FC = () => {
+  const [filters, setFilters] = useState<FilterState>({});
   const navigation = useNavigation<Nav>();
 
   const {
@@ -172,6 +173,7 @@ const ExploreSwiper: React.FC = () => {
         onBottomPress={() => navigation.navigate("Trending")}
         rightLabel={refreshing ? "Refreshing…" : "Refresh"}
         onRightPress={handleRefreshPress}
+        onFiltersChange={setFilters}
       />
 
       <View style={styles.swiperWrap}>
