@@ -3,6 +3,7 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { MediaType } from "../useExploreSwiper";
+import FilterButton, { FilterState } from "./FilterButton";
 
 type Props = {
   mediaType: MediaType;
@@ -13,6 +14,9 @@ type Props = {
 
   rightLabel?: string;         // usually "Refresh"
   onRightPress?: () => void;
+
+  // NEW: filters for the swiping interface
+  onFiltersChange?: (filters: FilterState) => void;
 };
 
 const MediaToggleBar: React.FC<Props> = ({
@@ -22,17 +26,22 @@ const MediaToggleBar: React.FC<Props> = ({
   onBottomPress,
   rightLabel,
   onRightPress,
+  onFiltersChange,
 }) => {
   return (
     <View style={styles.wrapper}>
-
       {/* MOVIES / SHOWS TOGGLE */}
       <View style={styles.toggleRow}>
         <TouchableOpacity
           style={[styles.toggleButton, mediaType === "movie" && styles.active]}
           onPress={() => onChange("movie")}
         >
-          <Text style={[styles.toggleText, mediaType === "movie" && styles.activeText]}>
+          <Text
+            style={[
+              styles.toggleText,
+              mediaType === "movie" && styles.activeText,
+            ]}
+          >
             Movies
           </Text>
         </TouchableOpacity>
@@ -41,31 +50,52 @@ const MediaToggleBar: React.FC<Props> = ({
           style={[styles.toggleButton, mediaType === "tv" && styles.active]}
           onPress={() => onChange("tv")}
         >
-          <Text style={[styles.toggleText, mediaType === "tv" && styles.activeText]}>
+          <Text
+            style={[
+              styles.toggleText,
+              mediaType === "tv" && styles.activeText,
+            ]}
+          >
             Shows
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* BOTTOM BAR → Center = Swipe/Trending | Right = Refresh */}
+      {/* BOTTOM BAR → Left = Filter | Center = Swipe/Trending | Right = Refresh */}
       <View style={styles.bottomRow}>
+        {/* LEFT — FILTER */}
+        {onFiltersChange && (
+          <View style={styles.filterWrapper}>
+            <FilterButton onFiltersChange={onFiltersChange} />
+          </View>
+        )}
 
         {/* CENTER — SWIPE/TRENDING BUTTON */}
         {bottomLabel && onBottomPress && (
-          <TouchableOpacity style={styles.bottomMainButton} onPress={onBottomPress}>
+          <TouchableOpacity
+            style={styles.bottomMainButton}
+            onPress={onBottomPress}
+          >
             <Text style={styles.bottomMainText}>{bottomLabel}</Text>
           </TouchableOpacity>
         )}
 
         {/* RIGHT — REFRESH */}
         {rightLabel && onRightPress && (
-          <TouchableOpacity style={styles.refreshButton} onPress={onRightPress}>
-            <Ionicons name="refresh" size={18} color="#1c1c1c" style={{ marginRight: 5 }} />
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={onRightPress}
+          >
+            <Ionicons
+              name="refresh"
+              size={18}
+              color="#1c1c1c"
+              style={{ marginRight: 5 }}
+            />
             <Text style={styles.refreshText}>{rightLabel}</Text>
           </TouchableOpacity>
         )}
       </View>
-
     </View>
   );
 };
@@ -116,9 +146,15 @@ const styles = StyleSheet.create({
   bottomRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",     // keeps main button centered
+    justifyContent: "center", // keeps main button centered
     marginTop: 6,
     paddingHorizontal: 16,
+  },
+
+  // LEFT — filter button wrapper (absolute)
+  filterWrapper: {
+    position: "absolute",
+    left: 16,
   },
 
   // Center main button (Trending/Swipe)
