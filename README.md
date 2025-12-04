@@ -12,3 +12,10 @@ In the era of streaming, the simple question “What should we watch?” has bec
 # To try out the app!
 3. Run `npm start` to start the server.
 4. If you've recently opened the app, open the **Expo Go** App on your mobile device and find **StreamBuddies**. Or, scan the QR code that appeared in your terminal to load the app. All edits to code will be shown live on the mobile device.
+
+---
+
+# Things to add to readMe for final submission
+- [ ] highlights (so that it's easier for graders to put down "things that stood out")
+- [ ] design / tech decisions; testing issues
+- [ ] test instructions
