@@ -3,21 +3,21 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { MediaType } from "../useExploreSwiper";
-import FilterButton from "./FilterButton";
+import FilterButton, { MediaFilters } from "./FilterButton";
 
 type Props = {
   mediaType: MediaType;
   onChange: (media: MediaType) => void;
 
-  bottomLabel?: string;        // "Trending" or "Swipe"
+  bottomLabel?: string; // "Trending" or "Swipe"
   onBottomPress?: () => void;
 
-  rightLabel?: string;         // usually "Refresh"
+  rightLabel?: string; // usually "Refresh"
   onRightPress?: () => void;
 
-  // Filtering support
-  filterDeck?: any[];
-  onFilterResults?: (results: any[]) => void;
+  // Filters
+  filters: MediaFilters;
+  onChangeFilters: (filters: MediaFilters) => void;
 };
 
 const MediaToggleBar: React.FC<Props> = ({
@@ -27,14 +27,9 @@ const MediaToggleBar: React.FC<Props> = ({
   onBottomPress,
   rightLabel,
   onRightPress,
-  filterDeck,
-  onFilterResults,
+  filters,
+  onChangeFilters,
 }) => {
-  const showFilter =
-    Array.isArray(filterDeck) &&
-    filterDeck.length > 0 &&
-    typeof onFilterResults === "function";
-
   return (
     <View style={styles.wrapper}>
       {/* TOP: Movies / Shows toggle */}
@@ -71,11 +66,9 @@ const MediaToggleBar: React.FC<Props> = ({
       {/* BOTTOM: Filter (left) | main (center) | Refresh (right) */}
       <View style={styles.bottomRow}>
         {/* LEFT — Filter */}
-        {showFilter && (
-          <View style={styles.leftFilterContainer}>
-            <FilterButton deck={filterDeck!} onFiltered={onFilterResults!} />
-          </View>
-        )}
+        <View style={styles.leftFilterContainer}>
+          <FilterButton value={filters} onChange={onChangeFilters} />
+        </View>
 
         {/* CENTER — Swipe / Trending */}
         {bottomLabel && onBottomPress && (

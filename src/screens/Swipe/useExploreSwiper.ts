@@ -2,6 +2,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Animated } from "react-native";
 import Swiper from "react-native-deck-swiper";
+import {
+  MediaFilters,
+  GENRE_LABEL_TO_TMDB_IDS,
+  STREAMING_NAME_TO_ID,
+} from "./Components/FilterButton";
 
 export type MediaType = "movie" | "tv";
 
@@ -15,8 +20,8 @@ export type MediaItem = {
 
   // For filtering:
   genre_ids?: number[];
-  vote_average?: number;         // 0–10 TMDB score
-  maturityRating?: string;       // "PG-13", "TV-MA", etc.
+  vote_average?: number; // 0–10 TMDB score
+  maturityRating?: string; // "PG-13", "TV-MA", etc.
   streamingProviders?: string[]; // ["Netflix", "Hulu", ...]
 };
 
@@ -83,7 +88,11 @@ async function fetchExtrasForItem(
   }
 }
 
-function discoverUrl(mediaType: MediaType, page: number): string {
+function discoverUrl(
+  mediaType: MediaType,
+  page: number,
+  filters: MediaFilters
+): string {
   const params = new URLSearchParams({
     language: "en-US",
     sort_by: "popularity.desc",
@@ -91,8 +100,75 @@ function discoverUrl(mediaType: MediaType, page: number): string {
     include_adult: "false",
     watch_region: "US",
     with_watch_monetization_types: "flatrate|ads|free",
-    with_watch_providers: STREAMING_PROVIDERS,
   });
+
+  // Streaming provider
+  if (filters.streaming === "Any") {
+    params.set("with_watch_providers", STREAMING_PROVIDERS);
+  } else {
+    const providerId = STREAMING_NAME_TO_ID[filters.streaming];
+    if (providerId) {
+      params.set("with_watch_providers", String(providerId));
+    } else {
+      params.set("with_watch_providers", STREAMING_PROVIDERS);
+    }
+  }
+
+  // Year / decade
+  if (filters.year !== "Any") {
+    const y = filters.year;
+    if (/^\d{4}$/.test(y)) {
+      if (mediaType === "movie") {
+        params.set("primary_release_year", y);
+      } else {
+        params.set("first_air_date_year", y);
+      }
+    } else {
+      let start: string | null = null;
+      let end: string | null = null;
+      if (y === "2020s") {
+        start = "2020-01-01";
+        end = "2029-12-31";
+      } else if (y === "2010s") {
+        start = "2010-01-01";
+        end = "2019-12-31";
+      } else if (y === "2000s") {
+        start = "2000-01-01";
+        end = "2009-12-31";
+      }
+      if (start && end) {
+        if (mediaType === "movie") {
+          params.set("primary_release_date.gte", start);
+          params.set("primary_release_date.lte", end);
+        } else {
+          params.set("first_air_date.gte", start);
+          params.set("first_air_date.lte", end);
+        }
+      }
+    }
+  }
+
+  // Genre
+  if (filters.genre !== "Any") {
+    const key = filters.genre.toLowerCase();
+    const ids = GENRE_LABEL_TO_TMDB_IDS[key];
+    if (ids && ids.length > 0) {
+      params.set("with_genres", ids.join(","));
+    }
+  }
+
+  // Stars (score buckets)
+  if (filters.stars !== "Any") {
+    let minVote = 0;
+    if (filters.stars === "4+ stars") minVote = 8.0;
+    else if (filters.stars === "3+ stars") minVote = 6.0;
+    else if (filters.stars === "2+ stars") minVote = 4.0;
+
+    if (minVote > 0) {
+      params.set("vote_average.gte", String(minVote));
+      params.set("vote_count.gte", "50");
+    }
+  }
 
   const baseUrl =
     mediaType === "movie" ? TMDB_DISCOVER_MOVIE_URL : TMDB_DISCOVER_TV_URL;
@@ -120,7 +196,9 @@ type UseExploreSwiperReturn = {
   loadNextDeckPage: () => Promise<void>;
 };
 
-export default function useExploreSwiper(): UseExploreSwiperReturn {
+export default function useExploreSwiper(
+  filters: MediaFilters
+): UseExploreSwiperReturn {
   const [deck, setDeck] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -142,7 +220,7 @@ export default function useExploreSwiper(): UseExploreSwiperReturn {
     pageToLoad: number,
     mode: FetchMode
   ) => {
-    const url = discoverUrl(type, pageToLoad);
+    const url = discoverUrl(type, pageToLoad, filters);
 
     try {
       if (mode === "next") setIsLoadingMore(true);
@@ -174,7 +252,17 @@ export default function useExploreSwiper(): UseExploreSwiperReturn {
         })
       );
 
-      setDeck(mappedWithExtras);
+      // Client-side maturity filter (uses extras)
+      let finalDeck = mappedWithExtras;
+      if (filters.maturity !== "Any") {
+        const wanted = filters.maturity.toUpperCase();
+        finalDeck = finalDeck.filter((m) => {
+          if (!m.maturityRating) return false;
+          return m.maturityRating.toUpperCase().includes(wanted);
+        });
+      }
+
+      setDeck(finalDeck);
       setPage(pageToLoad);
       setTotalPages(
         typeof data.total_pages === "number" ? data.total_pages : null
@@ -206,8 +294,8 @@ export default function useExploreSwiper(): UseExploreSwiperReturn {
 
   useEffect(() => {
     fetchPage(mediaType, 1, "initial");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mediaType]);
+    // filters is included so new filters trigger a fresh fetch
+  }, [mediaType, filters]);
 
   return {
     deck,

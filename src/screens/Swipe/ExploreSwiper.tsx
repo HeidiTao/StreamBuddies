@@ -16,6 +16,10 @@ import MovieCard from "./Components/MovieCard";
 import MediaToggleBar from "./Components/MediaToggleBar";
 import SwipeActionBar from "./Components/SwipeActionBar";
 import useExploreSwiper, { MediaType, MediaItem } from "./useExploreSwiper";
+import {
+  MediaFilters,
+  defaultFilters,
+} from "./Components/FilterButton";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "Explore">;
 
@@ -23,6 +27,8 @@ const YELLOW = "#ffca28";
 
 const ExploreSwiper: React.FC = () => {
   const navigation = useNavigation<Nav>();
+
+  const [filters, setFilters] = useState<MediaFilters>(defaultFilters);
 
   const {
     deck,
@@ -37,13 +43,12 @@ const ExploreSwiper: React.FC = () => {
     isLoadingMore,
     refreshDeck,
     loadNextDeckPage,
-  } = useExploreSwiper();
+  } = useExploreSwiper(filters);
 
   const [refreshing, setRefreshing] = useState(false);
-  const [filteredDeck, setFilteredDeck] = useState<MediaItem[]>([]);
   const [deckVersion, setDeckVersion] = useState(0);
 
-  const cardsToUse = filteredDeck.length > 0 ? filteredDeck : deck;
+  const cardsToUse = deck;
 
   const bgColor = bgValue.interpolate({
     inputRange: [-1, 0, 1],
@@ -118,14 +123,13 @@ const ExploreSwiper: React.FC = () => {
     navigateToDetail(m);
   };
 
-  // Refresh button = reset to page 1, clear filters
+  // Refresh button = reset to page 1 with same filters
   const handleRefreshPress = async () => {
     if (refreshing) return;
     try {
       setRefreshing(true);
       await refreshDeck();
       setCurrentIndex(0);
-      setFilteredDeck([]);
       setDeckVersion((v) => v + 1);
       resetBg();
     } finally {
@@ -133,10 +137,9 @@ const ExploreSwiper: React.FC = () => {
     }
   };
 
-  // Swipe through entire deck = load NEXT TMDB page, not restart same titles
+  // Swipe through entire deck = load NEXT TMDB page, honoring filters
   const handleSwipedAll = async () => {
     if (refreshing || isLoadingMore) return;
-    setFilteredDeck([]); // filters will re-apply from new deck if needed
     await loadNextDeckPage();
     setDeckVersion((v) => v + 1);
     resetBg();
@@ -173,7 +176,6 @@ const ExploreSwiper: React.FC = () => {
       <MediaToggleBar
         mediaType={mediaType}
         onChange={(mt: MediaType) => {
-          setFilteredDeck([]);
           switchMediaType(mt);
           setDeckVersion((v) => v + 1);
         }}
@@ -181,10 +183,11 @@ const ExploreSwiper: React.FC = () => {
         onBottomPress={() => navigation.navigate("Trending")}
         rightLabel={refreshing ? "Refreshing…" : "Refresh"}
         onRightPress={handleRefreshPress}
-        filterDeck={deck}
-        onFilterResults={(results) =>
-          setFilteredDeck(results as MediaItem[])
-        }
+        filters={filters}
+        onChangeFilters={(next) => {
+          setFilters(next);
+          setDeckVersion((v) => v + 1);
+        }}
       />
 
       <View style={styles.swiperWrap}>
