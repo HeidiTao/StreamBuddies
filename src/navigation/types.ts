@@ -42,17 +42,23 @@ export type RootStackParamList = {
   
   // Lists Stack
   Lists: undefined;
-  ListDetail: { listId: string }; // adjust params as needed
+  ListDetail: { listId: string }; // adjust params as needed 
+    // list: WatchlistDoc
   NewList: undefined;
   
   // Groups Stack
   Groups: undefined;
   GroupDetail: { groupId: Group }; // Changed from string to Group object
+    // group: GroupDoc
   JoinGroup: undefined;
   NewGroup: undefined;
   
   // Profile Stack
   Profile: undefined;
+  LogIn: undefined;
+  Register: {
+    phone: string;
+  };
   EditProfile: undefined;
   WatchStats: undefined;
 };

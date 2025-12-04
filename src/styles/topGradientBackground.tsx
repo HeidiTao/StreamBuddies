@@ -2,11 +2,11 @@ import { LinearGradient } from "expo-linear-gradient";
 import React, { ReactNode } from "react";
 import { View } from "react-native";
 
-type GradientBackgroundProps = {
+type TopGradientBackgroundProps = {
   children: ReactNode;
 };
 
-export const GradientBackground = ({ children }: GradientBackgroundProps) => {
+export const TopGradientBackground = ({ children }: TopGradientBackgroundProps) => {
   return (
     <View style={{ flex: 1 }}>
       {/* Horizontal color gradient at top */}
