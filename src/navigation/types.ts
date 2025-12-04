@@ -19,5 +19,15 @@ export type RootStackParamList = {
     };
     JoinGroup: undefined;
     NewGroup: undefined;
-    Profile: undefined;
+
+    Profile: undefined; //{ // wait the auth stuff could probably just handle userId
+    //     userId: string,
+    // }
+    LogIn: undefined;
+    // SignedInProfile: {
+    //     userId: number;
+    // };
+    Register: {
+        phone: string;
+    };
 };

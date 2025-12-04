@@ -13,7 +13,10 @@ import ListsView from "../screens/Lists/ListsView";
 import ListDetailView from "../screens/Lists/ListDetailView";
 import NewListView from "../screens/Lists/NewListView";
 import GroupsView from "../screens/Groups/GroupsView";
-import ProfileView from "../screens/ProfileView";
+import ProfileView from "../screens/Profile/ProfileView";
+import LogInView from "../screens/Profile/LogInView";
+import RegisterView from "../screens/Profile/RegisterView";
+import { useAuth } from "../hooks/useAuth";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
@@ -62,6 +65,7 @@ const ListsStackScreen = () => {
 import GroupDetailView from "../screens/Groups/GroupDetailView";
 import NewGroupView from "../screens/Groups/NewGroupView";
 import JoinGroupView from "../screens/Groups/JoinGroupView";
+import { useUserProfile } from "../hooks/useUserProfile";
 const GroupsStackScreen = () => {
   return (
     <Stack.Navigator>
@@ -74,9 +78,21 @@ const GroupsStackScreen = () => {
 };
 
 const ProfileStackScreen = () => {
+  const { authUser } = useAuth();
+  const { profile } = useUserProfile(authUser?.uid);
+  
   return (
-    <Stack.Navigator>
-      <Stack.Screen name="Profile" component={ProfileView} options={{ title: "My Profile" }} />
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {profile ? (
+        // signed in view: user profile
+        <Stack.Screen name="Profile" component={ProfileView} options={{ title: "My Account" }} />
+      ) : (<>
+        {/* // guest view: log in page */}
+        <Stack.Screen name="LogIn" component={LogInView} options={{ title: "Sign In", animation: "none" }} />
+      
+        {/* // authenticated, but hasn't been registered yet */}
+        <Stack.Screen name="Register" component={RegisterView} options={{ title: "Sign Up" }} />
+      </>)}
     </Stack.Navigator>
   );
 };
