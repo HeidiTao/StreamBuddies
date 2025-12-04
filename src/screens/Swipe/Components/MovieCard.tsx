@@ -15,13 +15,16 @@ const MovieCard: React.FC<Props> = ({ title, posterPath }) => {
     : null;
 
   return (
-    <View style={styles.card}>
+    <View style={styles.card} testID="movie-card">
       <View style={styles.posterWrapper}>
         {/* Poster image (hidden until loaded) */}
         {posterUri ? (
           <>
             {!imageLoaded && (
-              <View style={styles.posterPlaceholder}>
+              <View
+                style={styles.posterPlaceholder}
+                testID="movie-poster-placeholder"
+              >
                 <ActivityIndicator />
               </View>
             )}
@@ -30,10 +33,14 @@ const MovieCard: React.FC<Props> = ({ title, posterPath }) => {
               style={styles.posterImage}
               resizeMode="cover"
               onLoadEnd={() => setImageLoaded(true)}
+              testID="movie-poster-image"
             />
           </>
         ) : (
-          <View style={styles.posterPlaceholder}>
+          <View
+            style={styles.posterPlaceholder}
+            testID="movie-poster-placeholder"
+          >
             <Text style={styles.posterPlaceholderText}>No poster</Text>
           </View>
         )}
@@ -45,6 +52,7 @@ const MovieCard: React.FC<Props> = ({ title, posterPath }) => {
           style={styles.title}
           numberOfLines={2}
           ellipsizeMode="tail"
+          testID="movie-card-title"
         >
           {title}
         </Text>

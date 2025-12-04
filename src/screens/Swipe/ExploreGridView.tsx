@@ -1,5 +1,5 @@
 // src/screens/Swipe/ExploreGridView.tsx
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -14,6 +14,12 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../../navigation/types";
 import type { MediaType } from "./useExploreSwiper";
 import MediaToggleBar from "./Components/MediaToggleBar";
+import {
+  MediaFilters,
+  defaultFilters,
+  GENRE_LABEL_TO_TMDB_IDS,
+  STREAMING_NAME_TO_ID,
+} from "./Components/FilterButton";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "Trending">;
 
@@ -23,6 +29,9 @@ type MediaItem = {
   overview: string;
   poster_path: string | null;
   release_date?: string;
+  first_air_date?: string;
+  genre_ids?: number[];
+  vote_average?: number;
 };
 
 const TMDB_DISCOVER_MOVIE_URL = "https://api.themoviedb.org/3/discover/movie";
@@ -40,83 +49,161 @@ const ExploreGridView: React.FC = () => {
   const [totalPages, setTotalPages] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  const [filters, setFilters] = useState<MediaFilters>(defaultFilters);
+
   const listRef = useRef<FlatList<MediaItem>>(null);
 
   const tmdbToken = process.env.EXPO_PUBLIC_TMDB_READ_TOKEN;
   const tmdbApiKey = process.env.EXPO_PUBLIC_TMDB_API_KEY;
 
-  const fetchPage = useCallback(
-    async (type: MediaType, pageToLoad: number = 1, append: boolean = false) => {
-      if (!append) setLoading(true);
-      else setLoadingMore(true);
+  const fetchPage = async (
+    type: MediaType,
+    pageToLoad: number = 1,
+    append: boolean = false,
+    currentFilters: MediaFilters = filters
+  ) => {
+    if (!append) setLoading(true);
+    else setLoadingMore(true);
 
-      const params = new URLSearchParams({
-        language: "en-US",
-        sort_by: "popularity.desc",
-        page: String(pageToLoad),
-        include_adult: "false",
-        watch_region: "US",
-        with_watch_monetization_types: "flatrate|ads|free",
-        with_watch_providers: STREAMING_PROVIDERS,
-      });
+    const params = new URLSearchParams({
+      language: "en-US",
+      sort_by: "popularity.desc",
+      page: String(pageToLoad),
+      include_adult: "false",
+      watch_region: "US",
+      with_watch_monetization_types: "flatrate|ads|free",
+    });
 
-      const baseUrl =
-        type === "movie" ? TMDB_DISCOVER_MOVIE_URL : TMDB_DISCOVER_TV_URL;
-
-      const url = tmdbToken
-        ? `${baseUrl}?${params.toString()}`
-        : `${baseUrl}?${params.toString()}&api_key=${tmdbApiKey ?? ""}`;
-
-      const headers: HeadersInit = tmdbToken
-        ? { accept: "application/json", Authorization: `Bearer ${tmdbToken}` }
-        : { accept: "application/json" };
-
-      try {
-        const res = await fetch(url, { headers });
-        const data = await res.json();
-        if (!res.ok) throw new Error(`TMDB fetch failed: ${res.status}`);
-
-        const rawResults: any[] = Array.isArray(data.results) ? data.results : [];
-
-        const mapped: MediaItem[] = rawResults.map((item) => ({
-          id: item.id,
-          title: item.title ?? item.name ?? "Untitled",
-          overview: item.overview ?? "",
-          poster_path: item.poster_path ?? null,
-          release_date: item.release_date ?? item.first_air_date,
-        }));
-
-        setTotalPages(
-          typeof data.total_pages === "number" ? data.total_pages : null
-        );
-
-        setItems((prev) => (append ? [...prev, ...mapped] : mapped));
-        setPage(pageToLoad);
-      } catch (e) {
-        console.error("❌ Error fetching grid titles:", e);
-        if (!append) setItems([]);
-      } finally {
-        if (!append) setLoading(false);
-        else setLoadingMore(false);
+    // Streaming provider filter
+    if (currentFilters.streaming === "Any") {
+      params.set("with_watch_providers", STREAMING_PROVIDERS);
+    } else {
+      const providerId = STREAMING_NAME_TO_ID[currentFilters.streaming];
+      if (providerId) {
+        params.set("with_watch_providers", String(providerId));
+      } else {
+        params.set("with_watch_providers", STREAMING_PROVIDERS);
       }
-    },
-    [tmdbApiKey, tmdbToken]
-  );
+    }
 
+    // Year / decade
+    if (currentFilters.year !== "Any") {
+      const y = currentFilters.year;
+      if (/^\d{4}$/.test(y)) {
+        if (type === "movie") {
+          params.set("primary_release_year", y);
+        } else {
+          params.set("first_air_date_year", y);
+        }
+      } else {
+        let start: string | null = null;
+        let end: string | null = null;
+        if (y === "2020s") {
+          start = "2020-01-01";
+          end = "2029-12-31";
+        } else if (y === "2010s") {
+          start = "2010-01-01";
+          end = "2019-12-31";
+        } else if (y === "2000s") {
+          start = "2000-01-01";
+          end = "2009-12-31";
+        }
+        if (start && end) {
+          if (type === "movie") {
+            params.set("primary_release_date.gte", start);
+            params.set("primary_release_date.lte", end);
+          } else {
+            params.set("first_air_date.gte", start);
+            params.set("first_air_date.lte", end);
+          }
+        }
+      }
+    }
+
+    // Genre
+    if (currentFilters.genre !== "Any") {
+      const key = currentFilters.genre.toLowerCase();
+      const ids = GENRE_LABEL_TO_TMDB_IDS[key];
+      if (ids && ids.length > 0) {
+        params.set("with_genres", ids.join(","));
+      }
+    }
+
+    // Stars
+    if (currentFilters.stars !== "Any") {
+      let minVote = 0;
+      if (currentFilters.stars === "4+ stars") minVote = 8.0;
+      else if (currentFilters.stars === "3+ stars") minVote = 6.0;
+      else if (currentFilters.stars === "2+ stars") minVote = 4.0;
+
+      if (minVote > 0) {
+        params.set("vote_average.gte", String(minVote));
+        params.set("vote_count.gte", "50");
+      }
+    }
+
+    const baseUrl =
+      type === "movie" ? TMDB_DISCOVER_MOVIE_URL : TMDB_DISCOVER_TV_URL;
+
+    const url = tmdbToken
+      ? `${baseUrl}?${params.toString()}`
+      : `${baseUrl}?${params.toString()}&api_key=${tmdbApiKey ?? ""}`;
+
+    const headers: HeadersInit = tmdbToken
+      ? { accept: "application/json", Authorization: `Bearer ${tmdbToken}` }
+      : { accept: "application/json" };
+
+    try {
+      const res = await fetch(url, { headers });
+      const data = await res.json();
+      if (!res.ok) throw new Error(`TMDB fetch failed: ${res.status}`);
+
+      const rawResults: any[] = Array.isArray(data.results)
+        ? data.results
+        : [];
+
+      const mapped: MediaItem[] = rawResults.map((item) => ({
+        id: item.id,
+        title: item.title ?? item.name ?? "Untitled",
+        overview: item.overview ?? "",
+        poster_path: item.poster_path ?? null,
+        release_date: item.release_date ?? item.first_air_date,
+        first_air_date: item.first_air_date,
+        genre_ids: item.genre_ids ?? [],
+        vote_average: item.vote_average,
+      }));
+
+      setTotalPages(
+        typeof data.total_pages === "number" ? data.total_pages : null
+      );
+
+      setItems((prev) => (append ? [...prev, ...mapped] : mapped));
+      setPage(pageToLoad);
+    } catch (e) {
+      console.error("❌ Error fetching grid titles:", e);
+      if (!append) setItems([]);
+    } finally {
+      if (!append) setLoading(false);
+      else setLoadingMore(false);
+    }
+  };
+
+  // initial + media type changes
   useEffect(() => {
-    fetchPage(mediaType, 1, false);
-  }, [fetchPage, mediaType]);
+    fetchPage(mediaType, 1, false, filters);
+  }, [mediaType]); // filters changes are handled explicitly via onChangeFilters
 
   const handleChangeMediaType = (mt: MediaType) => {
     if (mt === mediaType) return;
     setMediaType(mt);
     setPage(1);
     setTotalPages(null);
+    listRef.current?.scrollToOffset({ offset: 0, animated: true });
   };
 
   const handleLoadMore = () => {
     if (!loadingMore && totalPages !== null && page < totalPages) {
-      fetchPage(mediaType, page + 1, true);
+      fetchPage(mediaType, page + 1, true, filters);
     }
   };
 
@@ -132,14 +219,7 @@ const ExploreGridView: React.FC = () => {
     if (refreshing) return;
     try {
       setRefreshing(true);
-
-      // 👇 go to next page, or wrap to 1
-      const nextPage =
-        totalPages && page < totalPages ? page + 1 : 1;
-
-      await fetchPage(mediaType, nextPage, false);
-
-      // scroll back to top so it feels like a fresh grid
+      await fetchPage(mediaType, 1, false, filters);
       listRef.current?.scrollToOffset({ offset: 0, animated: true });
     } finally {
       setRefreshing(false);
@@ -167,6 +247,8 @@ const ExploreGridView: React.FC = () => {
     </TouchableOpacity>
   );
 
+  const dataToRender = items;
+
   if (loading && items.length === 0) {
     return (
       <View style={styles.center}>
@@ -178,20 +260,24 @@ const ExploreGridView: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Media toggle & Swipe + Refresh row */}
       <MediaToggleBar
         mediaType={mediaType}
         onChange={handleChangeMediaType}
         bottomLabel="Swipe"
-        onBottomPress={() => navigation.goBack()} // back to swiper
+        onBottomPress={() => navigation.goBack()}
         rightLabel={refreshing ? "Refreshing…" : "Refresh"}
         onRightPress={handleRefreshPress}
+        filters={filters}
+        onChangeFilters={(next) => {
+          setFilters(next);
+          fetchPage(mediaType, 1, false, next);
+          listRef.current?.scrollToOffset({ offset: 0, animated: true });
+        }}
       />
 
-      {/* Grid of posters */}
       <FlatList
         ref={listRef}
-        data={items}
+        data={dataToRender}
         keyExtractor={(item) => item.id.toString()}
         numColumns={3}
         renderItem={renderItem}
@@ -228,7 +314,6 @@ const styles = StyleSheet.create({
     color: "#666",
   },
 
-  // --- Grid --- //
   gridContent: {
     paddingHorizontal: 8,
     paddingBottom: 16,

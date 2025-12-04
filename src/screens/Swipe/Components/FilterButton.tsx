@@ -1,67 +1,162 @@
 // src/screens/Swipe/Components/FilterButton.tsx
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
   Modal,
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import styles from "./FilterButton.styles";
 
-export type FilterState = {
-  genre?: string;
-  year?: string;
-  rating?: string;
+// ---- shared filter model ----
+export type MediaFilters = {
+  genre: string;
+  year: string;
+  maturity: string;
+  stars: string;
+  streaming: string;
 };
 
-type Props = {
-  onFiltersChange?: (filters: FilterState) => void;
+export const defaultFilters: MediaFilters = {
+  genre: "Any",
+  year: "Any",
+  maturity: "Any",
+  stars: "Any",
+  streaming: "Any",
 };
 
-const GENRES = [
+// TMDB genre ID → name (common genres)
+export const TMDB_GENRE_ID_TO_NAME: Record<number, string> = {
+  28: "Action",
+  12: "Adventure",
+  16: "Animation",
+  35: "Comedy",
+  80: "Crime",
+  99: "Documentary",
+  18: "Drama",
+  10751: "Family",
+  14: "Fantasy",
+  36: "History",
+  27: "Horror",
+  10402: "Music",
+  9648: "Mystery",
+  10749: "Romance",
+  878: "Science Fiction",
+  10770: "TV Movie",
+  53: "Thriller",
+  10752: "War",
+  37: "Western",
+};
+
+// label (lowercase) → TMDB IDs
+export const GENRE_LABEL_TO_TMDB_IDS: Record<string, number[]> =
+  Object.entries(TMDB_GENRE_ID_TO_NAME).reduce(
+    (acc, [idStr, name]) => {
+      const id = Number(idStr);
+      const key = name.toLowerCase();
+      acc[key] = acc[key] ? [...acc[key], id] : [id];
+      return acc;
+    },
+    {} as Record<string, number[]>
+  );
+
+// Streaming providers (names → TMDB provider IDs)
+// These IDs should align with STREAMING_PROVIDERS in your fetch code.
+export const STREAMING_NAME_TO_ID: Record<string, number> = {
+  Netflix: 8,
+  "Amazon Prime Video": 9,
+  "Disney+": 337,
+  Hulu: 15,
+  Max: 384, // HBO Max / Max
+  "Apple TV+": 350,
+  "Paramount+": 387,
+};
+
+const GENRE_OPTIONS: string[] = [
   "Any",
-  "Action",
-  "Comedy",
-  "Drama",
-  "Romance",
-  "Horror",
-  "Animation",
-  "Sci-Fi",
+  ...Object.values(TMDB_GENRE_ID_TO_NAME).sort((a, b) =>
+    a.localeCompare(b, undefined, { sensitivity: "base" })
+  ),
 ];
 
-const YEARS = ["Any", "2025", "2024", "2023", "2022", "2020s", "2010s", "2000s"];
+const YEARS = [
+  "Any",
+  "2025",
+  "2024",
+  "2023",
+  "2022",
+  "2020s",
+  "2010s",
+  "2000s",
+];
 
-const RATINGS = ["Any", "G", "PG", "PG-13", "R", "NC-17", "TV-Y", "TV-PG", "TV-14", "TV-MA"];
+const MATURITY_RATINGS = [
+  "Any",
+  "G",
+  "PG",
+  "PG-13",
+  "R",
+  "NC-17",
+  "TV-PG",
+  "TV-14",
+  "TV-MA",
+];
 
-const FilterButton: React.FC<Props> = ({ onFiltersChange }) => {
+const STAR_BUCKETS = ["Any", "4+ stars", "3+ stars", "2+ stars"];
+
+const STREAMING_OPTIONS = ["Any", ...Object.keys(STREAMING_NAME_TO_ID)];
+
+type Props = {
+  value: MediaFilters;
+  onChange: (filters: MediaFilters) => void;
+};
+
+const FilterButton: React.FC<Props> = ({ value, onChange }) => {
   const [visible, setVisible] = useState(false);
-  const [genre, setGenre] = useState<string | undefined>("Any");
-  const [year, setYear] = useState<string | undefined>("Any");
-  const [rating, setRating] = useState<string | undefined>("Any");
 
-  const handleApply = () => {
-    const filters: FilterState = {
-      genre: genre === "Any" ? undefined : genre,
-      year: year === "Any" ? undefined : year,
-      rating: rating === "Any" ? undefined : rating,
-    };
-    onFiltersChange?.(filters);
+  // local UI state mirrors parent filters
+  const [genre, setGenre] = useState<string>(value.genre);
+  const [year, setYear] = useState<string>(value.year);
+  const [maturity, setMaturity] = useState<string>(value.maturity);
+  const [stars, setStars] = useState<string>(value.stars);
+  const [streaming, setStreaming] = useState<string>(value.streaming);
+
+  // keep local state in sync if parent resets filters
+  useEffect(() => {
+    setGenre(value.genre);
+    setYear(value.year);
+    setMaturity(value.maturity);
+    setStars(value.stars);
+    setStreaming(value.streaming);
+  }, [value]);
+
+  const applyFilters = () => {
+    onChange({ genre, year, maturity, stars, streaming });
     setVisible(false);
   };
 
   const handleClear = () => {
     setGenre("Any");
     setYear("Any");
-    setRating("Any");
-    onFiltersChange?.({});
+    setMaturity("Any");
+    setStars("Any");
+    setStreaming("Any");
+    onChange(defaultFilters);
   };
+
+  const anyFilterActive =
+    genre !== "Any" ||
+    year !== "Any" ||
+    maturity !== "Any" ||
+    stars !== "Any" ||
+    streaming !== "Any";
 
   return (
     <>
       <TouchableOpacity
-        style={styles.button}
+        style={[styles.button, anyFilterActive && styles.buttonActive]}
         onPress={() => setVisible(true)}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
@@ -78,7 +173,7 @@ const FilterButton: React.FC<Props> = ({ onFiltersChange }) => {
               {/* Genre */}
               <Text style={styles.sectionTitle}>Genre</Text>
               <View style={styles.chipRow}>
-                {GENRES.map((g) => {
+                {GENRE_OPTIONS.map((g) => {
                   const active = genre === g;
                   return (
                     <TouchableOpacity
@@ -123,16 +218,16 @@ const FilterButton: React.FC<Props> = ({ onFiltersChange }) => {
                 })}
               </View>
 
-              {/* Rating */}
+              {/* Maturity rating */}
               <Text style={styles.sectionTitle}>Maturity rating</Text>
               <View style={styles.chipRow}>
-                {RATINGS.map((r) => {
-                  const active = rating === r;
+                {MATURITY_RATINGS.map((r) => {
+                  const active = maturity === r;
                   return (
                     <TouchableOpacity
                       key={r}
                       style={[styles.chip, active && styles.chipActive]}
-                      onPress={() => setRating(r)}
+                      onPress={() => setMaturity(r)}
                     >
                       <Text
                         style={[
@@ -146,6 +241,54 @@ const FilterButton: React.FC<Props> = ({ onFiltersChange }) => {
                   );
                 })}
               </View>
+
+              {/* Star rating */}
+              <Text style={styles.sectionTitle}>Star rating</Text>
+              <View style={styles.chipRow}>
+                {STAR_BUCKETS.map((b) => {
+                  const active = stars === b;
+                  return (
+                    <TouchableOpacity
+                      key={b}
+                      style={[styles.chip, active && styles.chipActive]}
+                      onPress={() => setStars(b)}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          active && styles.chipTextActive,
+                        ]}
+                      >
+                        {b}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Streaming service */}
+              <Text style={styles.sectionTitle}>Streaming service</Text>
+              <View style={styles.chipRow}>
+                {STREAMING_OPTIONS.map((s) => {
+                  const active = streaming === s;
+                  return (
+                    <TouchableOpacity
+                      key={s}
+                      style={[styles.chip, active && styles.chipActive]}
+                      onPress={() => setStreaming(s)}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          active && styles.chipTextActive,
+                        ]}
+                      >
+                        {s}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
             </ScrollView>
 
             <View style={styles.footerRow}>
@@ -153,7 +296,10 @@ const FilterButton: React.FC<Props> = ({ onFiltersChange }) => {
                 <Text style={styles.clearText}>Clear</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
+              <TouchableOpacity
+                style={styles.applyButton}
+                onPress={applyFilters}
+              >
                 <Text style={styles.applyText}>Apply filters</Text>
               </TouchableOpacity>
             </View>
@@ -170,108 +316,5 @@ const FilterButton: React.FC<Props> = ({ onFiltersChange }) => {
     </>
   );
 };
-
-const styles = StyleSheet.create({
-  button: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F4F4F4",
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-  },
-  buttonText: {
-    marginLeft: 6,
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#1c1c1c",
-  },
-
-  modalRoot: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
-    justifyContent: "center",
-    paddingHorizontal: 18,
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 16,
-    maxHeight: "80%",
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    marginTop: 10,
-    marginBottom: 4,
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    marginBottom: 8,
-  },
-  chip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    backgroundColor: "#f7f7f7",
-  },
-  chipActive: {
-    backgroundColor: "#CFEAFD",
-    borderColor: "#CFEAFD",
-  },
-  chipText: {
-    fontSize: 13,
-    color: "#333",
-  },
-  chipTextActive: {
-    fontWeight: "700",
-    color: "#000",
-  },
-  footerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 12,
-  },
-  clearButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
-  },
-  clearText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#444",
-  },
-  applyButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    backgroundColor: "#eac4d5",
-  },
-  applyText: {
-    fontSize: 13,
-    fontWeight: "700",
-    color: "#333",
-  },
-  closeX: {
-    position: "absolute",
-    top: 8,
-    right: 10,
-  },
-  closeXText: {
-    fontSize: 18,
-  },
-});
 
 export default FilterButton;
