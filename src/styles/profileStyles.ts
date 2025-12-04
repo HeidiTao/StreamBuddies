@@ -118,6 +118,171 @@ export const profileStyles = StyleSheet.create({
   },
 })
 
+export const profileStatStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    paddingTop: 60, // Adjust this value to move content up or down
+  },
+  userSection: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  avatarContainer: {
+    marginBottom: 12,
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#f0f0f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  userName: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  editButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
+  viewAll: {
+    color: '#007AFF',
+    fontSize: 14,
+  },
+  watchTimeSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: '#fff',
+  },
+  watchTimeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F8FF',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#D4E4FF',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  watchTimeIconContainer: {
+    marginRight: 12,
+  },
+  watchTimeInfo: {
+    flex: 1,
+  },
+  watchTimeLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  watchTimeValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#007AFF',
+    marginBottom: 2,
+  },
+  watchTimeSubtext: {
+    fontSize: 11,
+    color: '#999',
+  },
+  watchTimeProgressContainer: {
+    marginLeft: 8,
+  },
+  circularProgress: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#fff',
+    borderWidth: 4,
+    borderColor: '#007AFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  progressNumber: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#007AFF',
+  },
+  progressLabel: {
+    fontSize: 10,
+    color: '#666',
+  },
+  section: {
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  sectionTitleWithPadding: {
+    paddingHorizontal: 16,
+  },
+  horizontalScroll: {
+    paddingLeft: 16,
+  },
+  posterItem: {
+    marginRight: 12,
+  },
+  posterImage: {
+    width: 100,
+    height: 150,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+  },
+  gridContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 12,
+  },
+  gridItem: {
+    width: '31%',
+    marginHorizontal: '1%',
+    marginBottom: 12,
+  },
+  gridImage: {
+    width: '100%',
+    aspectRatio: 2 / 3,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+  },
+  watchStatsButton: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: '#E8E3F5',
+    marginHorizontal: 16,
+    marginVertical: 16,
+    borderRadius: 8,
+  },
+  watchStatsText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+})
+
 export const newProfileStyles = StyleSheet.create({
   container: {
     marginTop: 70,
