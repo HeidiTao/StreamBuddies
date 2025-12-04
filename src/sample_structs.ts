@@ -51,14 +51,15 @@ export interface ContentDoc {
 // ---------- Users ----------
 
 export interface UserDoc {
+  id: string;
   user_name: string;
-  email?: string;
-  phone_number?: string;
+  // email?: string;
+  phone_number: string;
   birthday?: TimestampMs;
-  join_date: TimestampMs;
-  streaming_services?: StreamingServiceKey[];
+  join_date?: TimestampMs;
+  streaming_services: StreamingServiceKey[];  // if none, just put empty array []
   friends?: ID[];                    // userIds of friends
-  photo_url?: string;
+  profile_pic?: string;
   created_at?: TimestampMs;
   updated_at?: TimestampMs;
 }
