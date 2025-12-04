@@ -23,6 +23,9 @@ type MediaItem = {
   overview: string;
   poster_path: string | null;
   release_date?: string;
+  first_air_date?: string;
+  genre_ids?: number[];
+  vote_average?: number;
 };
 
 const TMDB_DISCOVER_MOVIE_URL = "https://api.themoviedb.org/3/discover/movie";
@@ -34,6 +37,7 @@ const ExploreGridView: React.FC = () => {
 
   const [mediaType, setMediaType] = useState<MediaType>("movie");
   const [items, setItems] = useState<MediaItem[]>([]);
+  const [filteredItems, setFilteredItems] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
@@ -76,7 +80,9 @@ const ExploreGridView: React.FC = () => {
         const data = await res.json();
         if (!res.ok) throw new Error(`TMDB fetch failed: ${res.status}`);
 
-        const rawResults: any[] = Array.isArray(data.results) ? data.results : [];
+        const rawResults: any[] = Array.isArray(data.results)
+          ? data.results
+          : [];
 
         const mapped: MediaItem[] = rawResults.map((item) => ({
           id: item.id,
@@ -84,6 +90,9 @@ const ExploreGridView: React.FC = () => {
           overview: item.overview ?? "",
           poster_path: item.poster_path ?? null,
           release_date: item.release_date ?? item.first_air_date,
+          first_air_date: item.first_air_date,
+          genre_ids: item.genre_ids ?? [],
+          vote_average: item.vote_average,
         }));
 
         setTotalPages(
@@ -106,6 +115,11 @@ const ExploreGridView: React.FC = () => {
   useEffect(() => {
     fetchPage(mediaType, 1, false);
   }, [fetchPage, mediaType]);
+
+  // clear filters when items / type change
+  useEffect(() => {
+    setFilteredItems([]);
+  }, [items, mediaType]);
 
   const handleChangeMediaType = (mt: MediaType) => {
     if (mt === mediaType) return;
@@ -132,14 +146,10 @@ const ExploreGridView: React.FC = () => {
     if (refreshing) return;
     try {
       setRefreshing(true);
-
-      // 👇 go to next page, or wrap to 1
       const nextPage =
         totalPages && page < totalPages ? page + 1 : 1;
 
       await fetchPage(mediaType, nextPage, false);
-
-      // scroll back to top so it feels like a fresh grid
       listRef.current?.scrollToOffset({ offset: 0, animated: true });
     } finally {
       setRefreshing(false);
@@ -167,6 +177,8 @@ const ExploreGridView: React.FC = () => {
     </TouchableOpacity>
   );
 
+  const dataToRender = filteredItems.length > 0 ? filteredItems : items;
+
   if (loading && items.length === 0) {
     return (
       <View style={styles.center}>
@@ -178,20 +190,22 @@ const ExploreGridView: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Media toggle & Swipe + Refresh row */}
       <MediaToggleBar
         mediaType={mediaType}
         onChange={handleChangeMediaType}
         bottomLabel="Swipe"
-        onBottomPress={() => navigation.goBack()} // back to swiper
+        onBottomPress={() => navigation.goBack()}
         rightLabel={refreshing ? "Refreshing…" : "Refresh"}
         onRightPress={handleRefreshPress}
+        filterDeck={items}
+        onFilterResults={(results) =>
+          setFilteredItems(results as MediaItem[])
+        }
       />
 
-      {/* Grid of posters */}
       <FlatList
         ref={listRef}
-        data={items}
+        data={dataToRender}
         keyExtractor={(item) => item.id.toString()}
         numColumns={3}
         renderItem={renderItem}
@@ -228,7 +242,6 @@ const styles = StyleSheet.create({
     color: "#666",
   },
 
-  // --- Grid --- //
   gridContent: {
     paddingHorizontal: 8,
     paddingBottom: 16,

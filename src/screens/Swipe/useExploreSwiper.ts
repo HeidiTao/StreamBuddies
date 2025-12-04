@@ -1,5 +1,5 @@
 // src/screens/Swipe/useExploreSwiper.ts
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Animated } from "react-native";
 import Swiper from "react-native-deck-swiper";
 
@@ -11,142 +11,220 @@ export type MediaItem = {
   overview: string;
   poster_path: string | null;
   release_date?: string;
+  first_air_date?: string;
+
+  // For filtering:
+  genre_ids?: number[];
+  vote_average?: number;         // 0–10 TMDB score
+  maturityRating?: string;       // "PG-13", "TV-MA", etc.
+  streamingProviders?: string[]; // ["Netflix", "Hulu", ...]
 };
 
 const TMDB_DISCOVER_MOVIE_URL = "https://api.themoviedb.org/3/discover/movie";
 const TMDB_DISCOVER_TV_URL = "https://api.themoviedb.org/3/discover/tv";
+const STREAMING_PROVIDERS = "8|9|337|15|384|350|387"; // Netflix, Prime, etc.
 
-// TMDB watch providers for major US streaming services (Netflix, Prime, Disney+, Hulu, Max, AppleTV+, Peacock)
-const STREAMING_PROVIDERS = "8|9|337|15|384|350|387";
+const tmdbToken = process.env.EXPO_PUBLIC_TMDB_READ_TOKEN;
+const tmdbApiKey = process.env.EXPO_PUBLIC_TMDB_API_KEY;
 
-const useExploreSwiper = () => {
+const TMDB_HEADERS: HeadersInit = tmdbToken
+  ? { accept: "application/json", Authorization: `Bearer ${tmdbToken}` }
+  : { accept: "application/json" };
+
+function detailsUrl(id: number, mediaType: MediaType): string {
+  const typePath = mediaType === "tv" ? "tv" : "movie";
+  const base = `https://api.themoviedb.org/3/${typePath}/${id}`;
+  const params =
+    "append_to_response=release_dates,content_ratings,watch/providers&language=en-US";
+  if (tmdbToken) return `${base}?${params}`;
+  return `${base}?${params}&api_key=${tmdbApiKey ?? ""}`;
+}
+
+type DetailExtras = {
+  maturityRating?: string;
+  streamingProviders?: string[];
+};
+
+async function fetchExtrasForItem(
+  id: number,
+  mediaType: MediaType
+): Promise<DetailExtras> {
+  try {
+    const res = await fetch(detailsUrl(id, mediaType), {
+      headers: TMDB_HEADERS,
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(`details failed: ${res.status}`);
+
+    let maturity: string | undefined;
+
+    if (mediaType === "movie") {
+      const rdBlock = json.release_dates?.results ?? [];
+      const us = rdBlock.find((r: any) => r.iso_3166_1 === "US");
+      const cert = us?.release_dates?.[0]?.certification;
+      if (cert) maturity = cert;
+    } else {
+      const crBlock = json.content_ratings?.results ?? [];
+      const us = crBlock.find((r: any) => r.iso_3166_1 === "US");
+      const rating = us?.rating;
+      if (rating) maturity = rating;
+    }
+
+    const regionBlock = json["watch/providers"]?.results?.["US"];
+    const flatrate = regionBlock?.flatrate ?? [];
+    const providerNames = flatrate
+      .map((p: any) => p.provider_name)
+      .filter(Boolean);
+
+    return { maturityRating: maturity, streamingProviders: providerNames };
+  } catch (e) {
+    console.warn("extras fetch failed for", id, e);
+    return {};
+  }
+}
+
+function discoverUrl(mediaType: MediaType, page: number): string {
+  const params = new URLSearchParams({
+    language: "en-US",
+    sort_by: "popularity.desc",
+    page: String(page),
+    include_adult: "false",
+    watch_region: "US",
+    with_watch_monetization_types: "flatrate|ads|free",
+    with_watch_providers: STREAMING_PROVIDERS,
+  });
+
+  const baseUrl =
+    mediaType === "movie" ? TMDB_DISCOVER_MOVIE_URL : TMDB_DISCOVER_TV_URL;
+
+  if (tmdbToken) return `${baseUrl}?${params.toString()}`;
+  return `${baseUrl}?${params.toString()}&api_key=${tmdbApiKey ?? ""}`;
+}
+
+type UseExploreSwiperReturn = {
+  deck: MediaItem[];
+  loading: boolean;
+  isLoadingMore: boolean;
+
+  currentIndex: number;
+  setCurrentIndex: (i: number) => void;
+
+  mediaType: MediaType;
+  switchMediaType: (t: MediaType) => void;
+
+  swiperRef: React.RefObject<Swiper<MediaItem>>;
+  bgValue: Animated.Value;
+  upValue: Animated.Value;
+
+  refreshDeck: () => Promise<void>;
+  loadNextDeckPage: () => Promise<void>;
+};
+
+export default function useExploreSwiper(): UseExploreSwiperReturn {
   const [deck, setDeck] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [mediaType, setMediaType] = useState<MediaType>("movie");
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  const [mediaType, setMediaType] = useState<MediaType>("movie");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState<number | null>(null);
 
-  // Used by ExploreSwiper to call swipeLeft / swipeRight
-  const swiperRef = useRef<Swiper<MediaItem>>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Animated background values
+  const swiperRef = useRef<Swiper<MediaItem>>(null);
   const bgValue = useRef(new Animated.Value(0)).current;
   const upValue = useRef(new Animated.Value(0)).current;
 
-  const tmdbToken = process.env.EXPO_PUBLIC_TMDB_READ_TOKEN;
-  const tmdbApiKey = process.env.EXPO_PUBLIC_TMDB_API_KEY;
+  type FetchMode = "initial" | "refresh" | "next";
 
-  /**
-   * Single-page TMDB fetch (movies or TV).
-   * Very close to your original logic.
-   */
-  const fetchDiscover = useCallback(
-    async (media: MediaType, pageToLoad: number = 1, append: boolean = false) => {
-      if (!append) {
-        setLoading(true);
-      } else {
-        setIsLoadingMore(true);
-      }
+  const fetchPage = async (
+    type: MediaType,
+    pageToLoad: number,
+    mode: FetchMode
+  ) => {
+    const url = discoverUrl(type, pageToLoad);
 
-      const params = new URLSearchParams({
-        language: "en-US",
-        sort_by: "popularity.desc",
-        page: String(pageToLoad),
-        include_adult: "false",
-        watch_region: "US",
-        with_watch_monetization_types: "flatrate|ads|free",
-        with_watch_providers: STREAMING_PROVIDERS,
-      });
+    try {
+      if (mode === "next") setIsLoadingMore(true);
+      else setLoading(true);
 
-      const baseUrl =
-        media === "movie" ? TMDB_DISCOVER_MOVIE_URL : TMDB_DISCOVER_TV_URL;
+      const res = await fetch(url, { headers: TMDB_HEADERS });
+      const data = await res.json();
+      if (!res.ok) throw new Error(`TMDB discover failed: ${res.status}`);
 
-      const url = tmdbToken
-        ? `${baseUrl}?${params.toString()}`
-        : `${baseUrl}?${params.toString()}&api_key=${tmdbApiKey ?? ""}`;
+      const rawResults: any[] = Array.isArray(data.results)
+        ? data.results
+        : [];
 
-      // 👉 headers are created *inside* the function, so they are not in any deps
-      const headers: HeadersInit = tmdbToken
-        ? { accept: "application/json", Authorization: `Bearer ${tmdbToken}` }
-        : { accept: "application/json" };
+      const mappedBasic: MediaItem[] = rawResults.map((item) => ({
+        id: item.id,
+        title: item.title ?? item.name ?? "Untitled",
+        overview: item.overview ?? "",
+        poster_path: item.poster_path ?? null,
+        release_date: item.release_date ?? item.first_air_date,
+        first_air_date: item.first_air_date,
+        genre_ids: item.genre_ids ?? [],
+        vote_average: item.vote_average,
+      }));
 
-      try {
-        const res = await fetch(url, { headers });
-        const data = await res.json();
-        if (!res.ok) throw new Error(`TMDB fetch failed: ${res.status}`);
+      const mappedWithExtras: MediaItem[] = await Promise.all(
+        mappedBasic.map(async (m) => {
+          const extras = await fetchExtrasForItem(m.id, type);
+          return { ...m, ...extras };
+        })
+      );
 
-        const rawResults: any[] = Array.isArray(data.results) ? data.results : [];
-        const results: MediaItem[] = rawResults.map((item) => ({
-          id: item.id,
-          title: item.title ?? item.name ?? "Untitled",
-          overview: item.overview ?? "",
-          poster_path: item.poster_path ?? null,
-          release_date: item.release_date ?? item.first_air_date,
-        }));
+      setDeck(mappedWithExtras);
+      setPage(pageToLoad);
+      setTotalPages(
+        typeof data.total_pages === "number" ? data.total_pages : null
+      );
+      setCurrentIndex(0);
+    } catch (e) {
+      console.error("❌ Error fetching swiper deck:", e);
+      setDeck([]);
+    } finally {
+      if (mode === "next") setIsLoadingMore(false);
+      else setLoading(false);
+    }
+  };
 
-        const total =
-          typeof data.total_pages === "number" ? data.total_pages : null;
+  const refreshDeck = async () => {
+    await fetchPage(mediaType, 1, "refresh");
+  };
 
-        setTotalPages(total);
-        setDeck((prev) => (append ? [...prev, ...results] : results));
-        setPage(pageToLoad);
-        setCurrentIndex(0);
-      } catch (e) {
-        console.error("❌ Error fetching discover:", e);
-        if (!append) setDeck([]);
-      } finally {
-        if (!append) setLoading(false);
-        else setIsLoadingMore(false);
-      }
-    },
-    [tmdbToken, tmdbApiKey]
-  );
-
-  /**
-   * Lightweight refresh:
-   * - Go to the next page if possible
-   * - Otherwise wrap back to page 1
-   * - Exactly ONE network call
-   */
-  const refreshDeck = useCallback(async () => {
+  const loadNextDeckPage = async () => {
     const nextPage =
       totalPages && page < totalPages ? page + 1 : 1;
-
-    await fetchDiscover(mediaType, nextPage, false);
-  }, [fetchDiscover, mediaType, page, totalPages]);
-
-  // Initial load + when mediaType changes
-  useEffect(() => {
-    fetchDiscover(mediaType, 1, false);
-  }, [fetchDiscover, mediaType]);
-
-  // Called by MediaToggleBar via ExploreSwiper
-  const switchMediaType = (mt: MediaType) => {
-    if (mt === mediaType) return;
-    setMediaType(mt);
-    setPage(1);
-    setTotalPages(null);
-    setCurrentIndex(0);
+    await fetchPage(mediaType, nextPage, "next");
   };
+
+  const switchMediaType = (t: MediaType) => {
+    if (t === mediaType) return;
+    setMediaType(t);
+  };
+
+  useEffect(() => {
+    fetchPage(mediaType, 1, "initial");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mediaType]);
 
   return {
     deck,
     loading,
+    isLoadingMore,
+
     currentIndex,
     setCurrentIndex,
+
     mediaType,
     switchMediaType,
+
     swiperRef,
     bgValue,
     upValue,
-    isLoadingMore,
-    page,
-    totalPages,
-    fetchDiscover,
-    refreshDeck,
-  };
-};
 
-export default useExploreSwiper;
+    refreshDeck,
+    loadNextDeckPage,
+  };
+}

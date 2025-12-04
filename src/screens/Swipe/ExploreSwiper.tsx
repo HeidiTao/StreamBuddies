@@ -1,3 +1,4 @@
+// src/screens/Swipe/ExploreSwiper.tsx
 import React, { useState } from "react";
 import {
   View,
@@ -12,16 +13,15 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../../navigation/types";
 
 import MovieCard from "./Components/MovieCard";
-import type { FilterState } from "./Components/FilterButton";
 import MediaToggleBar from "./Components/MediaToggleBar";
 import SwipeActionBar from "./Components/SwipeActionBar";
 import useExploreSwiper, { MediaType, MediaItem } from "./useExploreSwiper";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "Explore">;
+
 const YELLOW = "#ffca28";
 
 const ExploreSwiper: React.FC = () => {
-  const [filters, setFilters] = useState<FilterState>({});
   const navigation = useNavigation<Nav>();
 
   const {
@@ -35,18 +35,19 @@ const ExploreSwiper: React.FC = () => {
     bgValue,
     upValue,
     isLoadingMore,
-    refreshDeck, // () => Promise<void>
+    refreshDeck,
+    loadNextDeckPage,
   } = useExploreSwiper();
 
-  // Local state for the Refresh button only
   const [refreshing, setRefreshing] = useState(false);
-
-  // 🔑 Used to force-remount Swiper when we refresh the deck
+  const [filteredDeck, setFilteredDeck] = useState<MediaItem[]>([]);
   const [deckVersion, setDeckVersion] = useState(0);
+
+  const cardsToUse = filteredDeck.length > 0 ? filteredDeck : deck;
 
   const bgColor = bgValue.interpolate({
     inputRange: [-1, 0, 1],
-    outputRange: ["#d32f2f", "#ffffff", "#2e7d32"], // NEUTRAL = white
+    outputRange: ["#d32f2f", "#ffffff", "#2e7d32"],
   });
 
   const upOpacity = upValue.interpolate({
@@ -113,18 +114,18 @@ const ExploreSwiper: React.FC = () => {
   };
 
   const handleInfoPress = () => {
-    const m = deck[currentIndex];
+    const m = cardsToUse[currentIndex];
     navigateToDetail(m);
   };
 
-  // 🔁 Refresh: single, fast call to refreshDeck()
+  // Refresh button = reset to page 1, clear filters
   const handleRefreshPress = async () => {
-    if (refreshing) return; // guard double-taps
+    if (refreshing) return;
     try {
       setRefreshing(true);
       await refreshDeck();
-      // reset our index and force Swiper to remount so its internal index resets too
       setCurrentIndex(0);
+      setFilteredDeck([]);
       setDeckVersion((v) => v + 1);
       resetBg();
     } finally {
@@ -132,10 +133,13 @@ const ExploreSwiper: React.FC = () => {
     }
   };
 
-  // 🔁 Auto-refill when you swipe the last card
+  // Swipe through entire deck = load NEXT TMDB page, not restart same titles
   const handleSwipedAll = async () => {
     if (refreshing || isLoadingMore) return;
-    await handleRefreshPress();
+    setFilteredDeck([]); // filters will re-apply from new deck if needed
+    await loadNextDeckPage();
+    setDeckVersion((v) => v + 1);
+    resetBg();
   };
 
   if (loading && !deck.length) {
@@ -147,7 +151,7 @@ const ExploreSwiper: React.FC = () => {
     );
   }
 
-  if (!deck.length) {
+  if (!cardsToUse.length) {
     return (
       <View style={styles.center}>
         <Text style={styles.emptyText}>No titles found.</Text>
@@ -168,19 +172,26 @@ const ExploreSwiper: React.FC = () => {
 
       <MediaToggleBar
         mediaType={mediaType}
-        onChange={(mt: MediaType) => switchMediaType(mt)}
+        onChange={(mt: MediaType) => {
+          setFilteredDeck([]);
+          switchMediaType(mt);
+          setDeckVersion((v) => v + 1);
+        }}
         bottomLabel="🔥 Trending"
         onBottomPress={() => navigation.navigate("Trending")}
         rightLabel={refreshing ? "Refreshing…" : "Refresh"}
         onRightPress={handleRefreshPress}
-        onFiltersChange={setFilters}
+        filterDeck={deck}
+        onFilterResults={(results) =>
+          setFilteredDeck(results as MediaItem[])
+        }
       />
 
       <View style={styles.swiperWrap}>
         <Swiper
-          key={deckVersion} // 👈 force a fresh Swiper when the deck refreshes
+          key={deckVersion}
           ref={swiperRef}
-          cards={deck}
+          cards={cardsToUse}
           cardStyle={styles.card}
           renderCard={(m) =>
             m ? (
@@ -205,32 +216,26 @@ const ExploreSwiper: React.FC = () => {
             resetBg();
           }}
           onSwipedRight={(i) => {
-            const liked = deck[i];
+            const liked = cardsToUse[i];
             if (liked) {
               console.log("👍 Liked:", liked.title);
               navigateToLikeConfirmation(liked);
             }
           }}
           onSwipedLeft={(i) => {
-            const passed = deck[i];
+            const passed = cardsToUse[i];
             if (passed) {
               console.log("👎 Passed:", passed.title);
             }
           }}
           onSwipedTop={(i) => {
-            const card = deck[i];
+            const card = cardsToUse[i];
             navigateToDetail(card);
           }}
-          onSwipedBottom={() => {
-            // optional: make swipe-down also trigger refresh
-            handleRefreshPress();
-          }}
-          verticalSwipe={true}
-          onTapCard={(i) => navigateToDetail(deck[i])}
-          onSwipedAborted={() => {
-            resetBg();
-          }}
-          // 👇 Auto-refresh when the last card is swiped
+          onSwipedBottom={handleRefreshPress}
+          verticalSwipe
+          onTapCard={(i) => navigateToDetail(cardsToUse[i])}
+          onSwipedAborted={resetBg}
           onSwipedAll={handleSwipedAll}
         />
       </View>
@@ -253,12 +258,10 @@ const ExploreSwiper: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-
   content: {
     flex: 1,
     backgroundColor: "transparent",
   },
-
   center: {
     flex: 1,
     alignItems: "center",
@@ -270,23 +273,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
   swiperWrap: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
   },
-
   card: {
     height: "100%",
     alignSelf: "center",
     borderRadius: 16,
     overflow: "hidden",
   },
-
   loadingText: { marginTop: 8, color: "#ccc" },
   emptyText: { color: "#ccc", textAlign: "center", paddingHorizontal: 24 },
-
   loadingMore: {
     position: "absolute",
     bottom: 80,

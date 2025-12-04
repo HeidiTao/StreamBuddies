@@ -3,7 +3,7 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import type { MediaType } from "../useExploreSwiper";
-import FilterButton, { FilterState } from "./FilterButton";
+import FilterButton from "./FilterButton";
 
 type Props = {
   mediaType: MediaType;
@@ -15,8 +15,9 @@ type Props = {
   rightLabel?: string;         // usually "Refresh"
   onRightPress?: () => void;
 
-  // NEW: filters for the swiping interface
-  onFiltersChange?: (filters: FilterState) => void;
+  // Filtering support
+  filterDeck?: any[];
+  onFilterResults?: (results: any[]) => void;
 };
 
 const MediaToggleBar: React.FC<Props> = ({
@@ -26,11 +27,17 @@ const MediaToggleBar: React.FC<Props> = ({
   onBottomPress,
   rightLabel,
   onRightPress,
-  onFiltersChange,
+  filterDeck,
+  onFilterResults,
 }) => {
+  const showFilter =
+    Array.isArray(filterDeck) &&
+    filterDeck.length > 0 &&
+    typeof onFilterResults === "function";
+
   return (
     <View style={styles.wrapper}>
-      {/* MOVIES / SHOWS TOGGLE */}
+      {/* TOP: Movies / Shows toggle */}
       <View style={styles.toggleRow}>
         <TouchableOpacity
           style={[styles.toggleButton, mediaType === "movie" && styles.active]}
@@ -61,16 +68,16 @@ const MediaToggleBar: React.FC<Props> = ({
         </TouchableOpacity>
       </View>
 
-      {/* BOTTOM BAR → Left = Filter | Center = Swipe/Trending | Right = Refresh */}
+      {/* BOTTOM: Filter (left) | main (center) | Refresh (right) */}
       <View style={styles.bottomRow}>
-        {/* LEFT — FILTER */}
-        {onFiltersChange && (
-          <View style={styles.filterWrapper}>
-            <FilterButton onFiltersChange={onFiltersChange} />
+        {/* LEFT — Filter */}
+        {showFilter && (
+          <View style={styles.leftFilterContainer}>
+            <FilterButton deck={filterDeck!} onFiltered={onFilterResults!} />
           </View>
         )}
 
-        {/* CENTER — SWIPE/TRENDING BUTTON */}
+        {/* CENTER — Swipe / Trending */}
         {bottomLabel && onBottomPress && (
           <TouchableOpacity
             style={styles.bottomMainButton}
@@ -80,7 +87,7 @@ const MediaToggleBar: React.FC<Props> = ({
           </TouchableOpacity>
         )}
 
-        {/* RIGHT — REFRESH */}
+        {/* RIGHT — Refresh */}
         {rightLabel && onRightPress && (
           <TouchableOpacity
             style={styles.refreshButton}
@@ -107,7 +114,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
 
-  // === TOP ROW === //
+  // top row
   toggleRow: {
     flexDirection: "row",
     paddingHorizontal: 16,
@@ -142,22 +149,20 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  // === BOTTOM ROW === //
+  // bottom row
   bottomRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center", // keeps main button centered
+    justifyContent: "center",
     marginTop: 6,
     paddingHorizontal: 16,
   },
 
-  // LEFT — filter button wrapper (absolute)
-  filterWrapper: {
+  leftFilterContainer: {
     position: "absolute",
     left: 16,
   },
 
-  // Center main button (Trending/Swipe)
   bottomMainButton: {
     paddingVertical: 8,
     paddingHorizontal: 22,
@@ -172,7 +177,6 @@ const styles = StyleSheet.create({
     color: "#333",
   },
 
-  // Right-side refresh button
   refreshButton: {
     flexDirection: "row",
     alignItems: "center",
