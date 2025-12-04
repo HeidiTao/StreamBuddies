@@ -10,7 +10,7 @@ import ListItemRowView from "./ListItemRowView";
 import { db } from "../../../config/firebase";
 import { collection, deleteDoc, getDocs, doc } from "firebase/firestore";
 import { LinearGradient } from "expo-linear-gradient";
-import { GradientBackground } from "../../styles/gradientBackground";
+import { TopGradientBackground } from "../../styles/topGradientBackground";
 import { useList } from "../../hooks/useList";
 import { listRepository } from "../../repositories/ListRepository";
 import { Ionicons } from "@expo/vector-icons";
@@ -101,7 +101,7 @@ const ListView: React.FC<Props> = ({ navigation }) => {
 
   return (
     <ScrollView>
-    <GradientBackground>
+    <TopGradientBackground>
       {isEditing ? (
         <>        
         <View style={listDetailStyles.listDataContainer}>
@@ -182,7 +182,7 @@ const ListView: React.FC<Props> = ({ navigation }) => {
         </View>
         </>
       )}
-    </GradientBackground>
+    </TopGradientBackground>
     </ScrollView>
   );
 };

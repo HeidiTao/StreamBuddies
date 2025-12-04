@@ -16,8 +16,8 @@ export class ListRepository {
     private collectionName = 'watchLists';
 
     /**
-    * Subscribe to real-time updates for all tasks
-    * @param callback Function to call when tasks are updated
+    * Subscribe to real-time updates for all watchlists
+    * @param callback Function to call when watchlists are updated
     * @returns Unsubscribe function
     */
     subscribe(callback: (lists: WatchlistDoc[]) => void): () => void {
@@ -25,7 +25,7 @@ export class ListRepository {
         const listsCollection = collection(db, this.collectionName);
         
         // onSnapshot: a method that attaches a listener to a specific point in the database
-        // when `taskCollection` changes, the function is immediately executed
+        // when `listsCollection` changes, the function is immediately executed
         return onSnapshot(listsCollection, (querySnapshot) => {
             const lists: WatchlistDoc[] = [];
             querySnapshot.forEach((doc) => {
@@ -64,8 +64,8 @@ export class ListRepository {
     * to ensure the list has finished saving to the database
     */
     async add(list: Omit<WatchlistDoc, 'id'>): Promise<void> {
-        const tasksCollection = collection(db, this.collectionName);
-        await addDoc(tasksCollection, {
+        const listsCollection = collection(db, this.collectionName);
+        await addDoc(listsCollection, {
             name: list.name,
             owner_user_id: list.owner_user_id,
             visibility: list.visibility,

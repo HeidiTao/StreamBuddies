@@ -4,19 +4,27 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
-import { View, Text } from "react-native";  // 👈 add this
+import { View, Text } from "react-native";
 
 import { RootStackParamList } from "./types";
 import ExploreView from "../screens/ExploreView";
 import MovieDetailView from "../screens/Swipe/MovieDetailView";
-import SearchView from "../screens/SearchView";
+import SearchView from "../screens/Search/SearchView";
 import ListsView from "../screens/Lists/ListsView";
 import ListDetailView from "../screens/Lists/ListDetailView";
 import NewListView from "../screens/Lists/NewListView";
 import GroupsView from "../screens/Groups/GroupsView";
-import ProfileView from "../screens/ProfileView";
+import ProfileView from "../screens/Profile/ProfileView";
+import LogInView from "../screens/Profile/LogInView";
+import RegisterView from "../screens/Profile/RegisterView";
 import ExploreGridView from "../screens/Swipe/ExploreGridView";
 import LikeConfirmationView from "../screens/Swipe/LikeConfirmationView";
+import EditProfileScreen from "../screens/Profile/EditProfileScreen";
+import WatchStatsScreen from "../screens/Profile/WatchStatsScreen";
+import MovieDetailSearchView from "../screens/Search/MovieDetailSearchView";
+import ServiceResultsScreen from "../screens/Search/ServiceResultsScreen";
+import { WatchStatsProvider } from "../screens/contexts/WatchStatsContext";
+import { useAuth } from "../hooks/useAuth";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
@@ -62,7 +70,7 @@ const ExploreStackScreen = () => {
           header: () => (
             <View
               style={{
-                height: 60,           // 👈 small white strip like in your “Up” mock
+                height: 60,           // 👈 small white strip like in your "Up" mock
                 backgroundColor: "#ffffff",
               }}
             />
@@ -88,7 +96,22 @@ const SearchStackScreen = () => {
       <Stack.Screen
         name="Search"
         component={SearchView}
-        options={{ title: "What do you want to watch?" }}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="ServiceResults"
+        component={ServiceResultsScreen}
+        options={{ 
+          headerShown: false,
+          presentation: 'card',
+          gestureEnabled: true,
+          gestureDirection: 'horizontal',
+        }}
+      />
+      <Stack.Screen
+        name="MovieDetailSearch"
+        component={MovieDetailSearchView}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );
@@ -107,11 +130,12 @@ const ListsStackScreen = () => {
 import GroupDetailView from "../screens/Groups/GroupDetailView";
 import NewGroupView from "../screens/Groups/NewGroupView";
 import JoinGroupView from "../screens/Groups/JoinGroupView";
+import { useUserProfile } from "../hooks/useUserProfile";
 const GroupsStackScreen = () => {
   return (
     <Stack.Navigator>
-  <Stack.Screen name="Groups" component={GroupsView} options={{ title: "My Groups" }} />
-  <Stack.Screen name="GroupDetail" component={GroupDetailView} options={{ title: "Group Details" }} />
+  <Stack.Screen name="Groups" component={GroupsView} options={{ headerShown: false }} />
+  <Stack.Screen name="GroupDetail" component={GroupDetailView} options={{ headerShown: false }} />
   <Stack.Screen name="JoinGroup" component={JoinGroupView} options={{ title: "Join Group" }} />
   <Stack.Screen name="NewGroup" component={NewGroupView} options={{ title: "Create New Group" }} />
     </Stack.Navigator>
@@ -119,9 +143,37 @@ const GroupsStackScreen = () => {
 };
 
 const ProfileStackScreen = () => {
+  const { authUser } = useAuth();
+  const { profile } = useUserProfile(authUser?.uid);
+  
   return (
-    <Stack.Navigator>
-      <Stack.Screen name="Profile" component={ProfileView} options={{ title: "My Profile" }} />
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {profile ? (<>
+        {/* // signed in view: user profile */}
+        <Stack.Screen name="Profile" component={ProfileView} options={{ title: "My Account" }} />
+
+        {/* <Stack.Screen 
+          name="Profile" 
+          component={ProfileView} 
+          options={{ headerShown: false }} 
+        /> */}
+        <Stack.Screen 
+          name="EditProfile" 
+          component={EditProfileScreen} 
+          options={{ title: "Edit Profile" }} 
+        />
+        <Stack.Screen 
+          name="WatchStats" 
+          component={WatchStatsScreen} 
+          options={{ title: "Watch Statistics" }} 
+        />
+      </>) : (<>
+        {/* // guest view: log in page */}
+        <Stack.Screen name="LogIn" component={LogInView} options={{ title: "Sign In", animation: "none" }} />
+      
+        {/* // authenticated, but hasn't been registered yet */}
+        <Stack.Screen name="Register" component={RegisterView} options={{ title: "Sign Up" }} />
+      </>)}
     </Stack.Navigator>
   );
 };
@@ -129,31 +181,33 @@ const ProfileStackScreen = () => {
 // MARK: Tabs
 const AppNavigator: React.FC = () => {
   return (
-    <NavigationContainer>
-      <Tab.Navigator
-        initialRouteName="ExploreTab"
-        screenOptions={({ route }) => ({
-          tabBarIcon: ({ color, size }) => {
-            let iconName: keyof typeof Ionicons.glyphMap = "ellipse";
-            if (route.name === "ExploreTab") iconName = "balloon";
-            else if (route.name === "SearchTab") iconName = "search";
-            else if (route.name === "ListsTab") iconName = "bookmarks";
-            else if (route.name === "GroupsTab") iconName = "people-circle";
-            else if (route.name === "ProfileTab") iconName = "person";
-            return <Ionicons name={iconName} size={size} color={color} />;
-          },
-          headerShown: false,
-          tabBarActiveTintColor: "black",
-          tabBarInactiveTintColor: "gray",
-        })}
-      >
-        <Tab.Screen name="ExploreTab" component={ExploreStackScreen} options={{ title: "Explore" }} />
-        <Tab.Screen name="SearchTab" component={SearchStackScreen} options={{ title: "Search" }} />
-        <Tab.Screen name="ListsTab" component={ListsStackScreen} options={{ title: "Lists" }} />
-        <Tab.Screen name="GroupsTab" component={GroupsStackScreen} options={{ title: "Groups" }} />
-        <Tab.Screen name="ProfileTab" component={ProfileStackScreen} options={{ title: "Profile" }} />
-      </Tab.Navigator>
-    </NavigationContainer>
+    <WatchStatsProvider>
+      <NavigationContainer>
+        <Tab.Navigator
+          initialRouteName="ExploreTab"
+          screenOptions={({ route }) => ({
+            tabBarIcon: ({ color, size }) => {
+              let iconName: keyof typeof Ionicons.glyphMap = "ellipse";
+              if (route.name === "ExploreTab") iconName = "balloon";
+              else if (route.name === "SearchTab") iconName = "search";
+              else if (route.name === "ListsTab") iconName = "bookmarks";
+              else if (route.name === "GroupsTab") iconName = "people-circle";
+              else if (route.name === "ProfileTab") iconName = "person";
+              return <Ionicons name={iconName} size={size} color={color} />;
+            },
+            headerShown: false,
+            tabBarActiveTintColor: "black",
+            tabBarInactiveTintColor: "gray",
+          })}
+        >
+          <Tab.Screen name="ExploreTab" component={ExploreStackScreen} options={{ title: "Explore" }} />
+          <Tab.Screen name="SearchTab" component={SearchStackScreen} options={{ title: "Search" }} />
+          <Tab.Screen name="ListsTab" component={ListsStackScreen} options={{ title: "Lists" }} />
+          <Tab.Screen name="GroupsTab" component={GroupsStackScreen} options={{ title: "Groups" }} />
+          <Tab.Screen name="ProfileTab" component={ProfileStackScreen} options={{ title: "Profile" }} />
+        </Tab.Navigator>
+      </NavigationContainer>
+    </WatchStatsProvider>
   );
 };
 
