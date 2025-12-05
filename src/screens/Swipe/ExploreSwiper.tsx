@@ -1,4 +1,5 @@
 // src/screens/Swipe/ExploreSwiper.tsx
+
 import React, { useState } from "react";
 import {
   View,
@@ -28,7 +29,13 @@ const YELLOW = "#ffca28";
 const ExploreSwiper: React.FC = () => {
   const navigation = useNavigation<Nav>();
 
-  // 🔎 Shared filters for swiper (and passed into useExploreSwiper)
+  /**
+   * Global filters for the Explore swiper.
+   * - These are passed into `useExploreSwiper(filters)` so the hook
+   *   can fetch the right TMDB results (genre/year/stars/maturity/streaming).
+   * - They are also passed into MediaToggleBar → FilterButton so the
+   *   filter UI stays in sync with the data.
+   */
   const [filters, setFilters] = useState<MediaFilters>({
     genre: "Any",
     year: "Any",
@@ -37,6 +44,14 @@ const ExploreSwiper: React.FC = () => {
     streaming: "Any",
   });
 
+  /**
+   * Custom hook that:
+   *   - Fetches & stores the current deck of titles (`deck`)
+   *   - Tracks loading states
+   *   - Knows the active mediaType ("movie" | "tv")
+   *   - Exposes helpers like `refreshDeck` and `loadNextDeckPage`
+   *   - Provides animated values for the background color
+   */
   const {
     deck,
     loading,
@@ -48,30 +63,58 @@ const ExploreSwiper: React.FC = () => {
     swiperRef,
     bgValue,
     upValue,
-    refreshDeck,
-    loadNextDeckPage,
+    refreshDeck,       // currently unused here, but still exposed
+    loadNextDeckPage,  // used to get the next TMDB page
   } = useExploreSwiper(filters);
 
-  // Local state for the Refresh button label
+  /**
+   * Local state that drives the label / disabled state
+   * of the Refresh button (e.g., "Refreshing…").
+   */
   const [refreshing, setRefreshing] = useState(false);
 
-  // 👇 key used to force-remount Swiper when we load a new page
+  /**
+   * deckVersion is used as a React `key` for the Swiper component.
+   * When we increment this, React unmounts/remounts Swiper, which
+   * resets its internal index back to 0. This is how we get Swiper
+   * to “start at the top” of a newly loaded deck.
+   */
   const [deckVersion, setDeckVersion] = useState(0);
 
+  /**
+   * Background color transitions:
+   * - bgValue ∈ [-1, 0, 1]
+   *   - -1 = strong left swipe (red)
+   *   -  0 = neutral (white)
+   *   -  1 = strong right swipe (green)
+   */
   const bgColor = bgValue.interpolate({
     inputRange: [-1, 0, 1],
     outputRange: ["#d32f2f", "#ffffff", "#2e7d32"],
   });
 
+  /**
+   * Yellow overlay opacity:
+   * - upValue goes 0 → 1 when user swipes upwards enough
+   * - We fade in a yellow overlay to communicate an "up swipe" action
+   *   (e.g., see details).
+   */
   const upOpacity = upValue.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 0.8],
   });
 
+  /**
+   * Handle card being dragged:
+   *  - x movement controls bgValue (left/right color)
+   *  - y movement controls upValue (yellow overlay when swiping up)
+   */
   const handleSwiping = (x: number, y: number) => {
+    // Normalize horizontal swipe distance into [-1, 1]
     const horizontal = Math.max(-1, Math.min(1, x / 200));
     bgValue.setValue(horizontal);
 
+    // If user drags card upwards beyond threshold, show yellow overlay
     if (y < -80) {
       Animated.timing(upValue, {
         toValue: 1,
@@ -87,6 +130,10 @@ const ExploreSwiper: React.FC = () => {
     }
   };
 
+  /**
+   * Reset both background and yellow-overlay animations
+   * back to the neutral state.
+   */
   const resetBg = () => {
     Animated.parallel([
       Animated.timing(bgValue, {
@@ -102,6 +149,9 @@ const ExploreSwiper: React.FC = () => {
     ]).start();
   };
 
+  /**
+   * Navigate to the Movie/TV detail view for a given card.
+   */
   const navigateToDetail = (m: MediaItem | undefined) => {
     if (!m) return;
     navigation.navigate("MovieDetail", {
@@ -111,6 +161,9 @@ const ExploreSwiper: React.FC = () => {
     });
   };
 
+  /**
+   * Navigate to the "Like Confirmation" screen after a right swipe.
+   */
   const navigateToLikeConfirmation = (m: MediaItem | undefined) => {
     if (!m) return;
     navigation.navigate("LikeConfirmation", {
@@ -118,32 +171,52 @@ const ExploreSwiper: React.FC = () => {
     });
   };
 
+  /**
+   * Bottom action bar: "Pass" button handler
+   * → programmatically swipes the card left.
+   */
   const handlePassPress = () => {
     swiperRef.current?.swipeLeft();
   };
 
+  /**
+   * Bottom action bar: "Like" button handler
+   * → programmatically swipes the card right.
+   */
   const handleLikePress = () => {
     swiperRef.current?.swipeRight();
   };
 
+  /**
+   * Bottom action bar: "Info" button handler
+   * → opens details for the currently focused card.
+   */
   const handleInfoPress = () => {
     const m = deck[currentIndex];
     navigateToDetail(m);
   };
 
   /**
-   * 🔁 Refresh = load NEXT page of titles from TMDB (not restart same deck)
-   * Works both when there are cards *and* when you've swiped through all of them.
+   * 🔁 Refresh behavior:
+   * - Instead of reloading the same page, we ask the hook
+   *   to `loadNextDeckPage()` from TMDB, so the user sees
+   *   brand-new titles.
+   * - This works whether there are cards left in the deck
+   *   OR we've swiped all the way to the end.
+   * - After loading:
+   *   - Reset the external currentIndex
+   *   - Bump `deckVersion` so Swiper fully remounts
+   *   - Reset the background animations to neutral
    */
   const handleRefreshPress = async () => {
     if (refreshing || isLoadingMore) return;
     try {
       setRefreshing(true);
 
-      // Fetch the next page of results from TMDB
+      // Fetch the next page of results from TMDB via the hook
       await loadNextDeckPage();
 
-      // Reset swiper index & force-remount so it shows the new deck
+      // Reset state so Swiper starts at the first card of the new deck
       setCurrentIndex(0);
       setDeckVersion((v) => v + 1);
       resetBg();
@@ -153,13 +226,18 @@ const ExploreSwiper: React.FC = () => {
   };
 
   /**
-   * When the last card is swiped, automatically grab the next page
-   * and remount Swiper so new titles appear.
+   * When the user has swiped the *last* card in the deck:
+   * - We automatically call the same refresh logic that
+   *   loads the next page from TMDB and remounts the swiper.
    */
   const handleSwipedAll = async () => {
     await handleRefreshPress();
   };
 
+  /**
+   * Initial "global loading" state:
+   * - Only shown when we're still waiting for the first deck to load.
+   */
   if (loading && !deck.length) {
     return (
       <View style={styles.center}>
@@ -169,13 +247,17 @@ const ExploreSwiper: React.FC = () => {
     );
   }
 
-  // We keep rendering the UI even if deck is empty so the user
-  // can tweak filters or hit Refresh to get a fresh page.
+  /**
+   * Even if deck is empty (e.g., filters too strict), we still render:
+   * - the MediaToggleBar (so user can change filters / mediaType)
+   * - the bottom SwipeActionBar
+   * - an empty-state message instead of the Swiper.
+   */
   const noCards = deck.length === 0;
 
   return (
     <Animated.View style={[styles.container, { backgroundColor: bgColor }]}>
-      {/* yellow overlay for upward swipe */}
+      {/* Yellow overlay for upward swipe (sits on top of bgColor) */}
       <Animated.View
         pointerEvents="none"
         style={[
@@ -184,6 +266,7 @@ const ExploreSwiper: React.FC = () => {
         ]}
       />
 
+      {/* Top bar: Movies/Shows toggle, Filter button, Trending button, Refresh button */}
       <MediaToggleBar
         mediaType={mediaType}
         onChange={(mt: MediaType) => switchMediaType(mt)}
@@ -197,6 +280,7 @@ const ExploreSwiper: React.FC = () => {
 
       <View style={styles.swiperWrap}>
         {noCards ? (
+          // Empty state when no titles are in the current deck
           <View style={styles.centerInner}>
             <Text style={styles.emptyText}>
               No titles match these filters right now.
@@ -206,7 +290,9 @@ const ExploreSwiper: React.FC = () => {
           </View>
         ) : (
           <Swiper
-            key={deckVersion} // 👈 force fresh swiper instance when deck changes pages
+            // Changing key forces Swiper to unmount/remount when we load a new page,
+            // which resets its internal index and starts from the first card.
+            key={deckVersion}
             ref={swiperRef}
             cards={deck}
             cardStyle={styles.card}
@@ -229,6 +315,7 @@ const ExploreSwiper: React.FC = () => {
             animateCardOpacity
             onSwiping={handleSwiping}
             onSwiped={(i) => {
+              // Track the *external* index whenever Swiper swipes to next card
               setCurrentIndex(i + 1);
               resetBg();
             }}
@@ -250,7 +337,7 @@ const ExploreSwiper: React.FC = () => {
               navigateToDetail(card);
             }}
             onSwipedBottom={() => {
-              // optional: make swipe-down also trigger next page
+              // Optional behavior: swipe-down triggers loading the next set of titles
               handleRefreshPress();
             }}
             verticalSwipe={true}
@@ -261,12 +348,14 @@ const ExploreSwiper: React.FC = () => {
         )}
       </View>
 
+      {/* Bottom action bar: Pass / Info / Like buttons */}
       <SwipeActionBar
         onPass={handlePassPress}
         onInfo={handleInfoPress}
         onLike={handleLikePress}
       />
 
+      {/* Small loading pill while we’re fetching the next page in the background */}
       {isLoadingMore && (
         <View className="loadingMore" style={styles.loadingMore}>
           <ActivityIndicator size="small" />
