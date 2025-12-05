@@ -4,6 +4,12 @@ In the era of streaming, the simple question “What should we watch?” has bec
 
 ---
 
+# To run tests
+1. Run `npm test` in a terminal. This will run all the unit tests and show coverage data.
+2. A coverage stats dashboard is also available at `/coverage/lcov-report/index.html`
+
+---
+
 # To contribute to this project:
 
 1. Git clone the repository to your local machine or run `git pull` to get the updates.
@@ -19,3 +25,4 @@ In the era of streaming, the simple question “What should we watch?” has bec
 - [ ] highlights (so that it's easier for graders to put down "things that stood out")
 - [ ] design / tech decisions; testing issues
 - [ ] test instructions
+- [ ] 
