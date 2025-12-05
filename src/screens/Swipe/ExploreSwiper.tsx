@@ -15,7 +15,10 @@ import type { RootStackParamList } from "../../navigation/types";
 import MovieCard from "./Components/MovieCard";
 import MediaToggleBar from "./Components/MediaToggleBar";
 import SwipeActionBar from "./Components/SwipeActionBar";
-import useExploreSwiper, { MediaType, MediaItem } from "./useExploreSwiper";
+import useExploreSwiper, {
+  MediaType,
+  MediaItem,
+} from "./useExploreSwiper";
 import type { MediaFilters } from "./Components/FilterButton";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "Explore">;
@@ -25,7 +28,7 @@ const YELLOW = "#ffca28";
 const ExploreSwiper: React.FC = () => {
   const navigation = useNavigation<Nav>();
 
-  // Local filter state (if your MediaToggleBar/FilterButton uses this)
+  // 🔎 Shared filters for swiper (and passed into useExploreSwiper)
   const [filters, setFilters] = useState<MediaFilters>({
     genre: "Any",
     year: "Any",
@@ -37,6 +40,7 @@ const ExploreSwiper: React.FC = () => {
   const {
     deck,
     loading,
+    isLoadingMore,
     currentIndex,
     setCurrentIndex,
     mediaType,
@@ -44,12 +48,15 @@ const ExploreSwiper: React.FC = () => {
     swiperRef,
     bgValue,
     upValue,
-    isLoadingMore,
-    refreshDeck,     // still available if you want "reload this page"
-    loadNextDeckPage // 🔑 NEW: used for "Refresh" to show new titles
+    refreshDeck,
+    loadNextDeckPage,
   } = useExploreSwiper(filters);
 
+  // Local state for the Refresh button label
   const [refreshing, setRefreshing] = useState(false);
+
+  // 👇 key used to force-remount Swiper when we load a new page
+  const [deckVersion, setDeckVersion] = useState(0);
 
   const bgColor = bgValue.interpolate({
     inputRange: [-1, 0, 1],
@@ -124,21 +131,32 @@ const ExploreSwiper: React.FC = () => {
     navigateToDetail(m);
   };
 
-  // 🔁 Refresh: now goes to NEXT PAGE of TMDB results instead of rewinding
+  /**
+   * 🔁 Refresh = load NEXT page of titles from TMDB (not restart same deck)
+   * Works both when there are cards *and* when you've swiped through all of them.
+   */
   const handleRefreshPress = async () => {
     if (refreshing || isLoadingMore) return;
     try {
       setRefreshing(true);
-      await loadNextDeckPage(); // <--- key change
+
+      // Fetch the next page of results from TMDB
+      await loadNextDeckPage();
+
+      // Reset swiper index & force-remount so it shows the new deck
+      setCurrentIndex(0);
+      setDeckVersion((v) => v + 1);
       resetBg();
     } finally {
       setRefreshing(false);
     }
   };
 
-  // 🔁 When you swipe all cards, also advance to next page
+  /**
+   * When the last card is swiped, automatically grab the next page
+   * and remount Swiper so new titles appear.
+   */
   const handleSwipedAll = async () => {
-    if (refreshing || isLoadingMore) return;
     await handleRefreshPress();
   };
 
@@ -151,13 +169,9 @@ const ExploreSwiper: React.FC = () => {
     );
   }
 
-  if (!deck.length) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.emptyText}>No titles found.</Text>
-      </View>
-    );
-  }
+  // We keep rendering the UI even if deck is empty so the user
+  // can tweak filters or hit Refresh to get a fresh page.
+  const noCards = deck.length === 0;
 
   return (
     <Animated.View style={[styles.container, { backgroundColor: bgColor }]}>
@@ -175,65 +189,76 @@ const ExploreSwiper: React.FC = () => {
         onChange={(mt: MediaType) => switchMediaType(mt)}
         bottomLabel="🔥 Trending"
         onBottomPress={() => navigation.navigate("Trending")}
-        rightLabel={refreshing || isLoadingMore ? "Loading…" : "Refresh"}
+        rightLabel={refreshing ? "Refreshing…" : "Refresh"}
         onRightPress={handleRefreshPress}
         filters={filters}
         onFiltersChange={setFilters}
       />
 
       <View style={styles.swiperWrap}>
-        <Swiper
-          ref={swiperRef}
-          cards={deck}
-          cardStyle={styles.card}
-          renderCard={(m) =>
-            m ? (
-              <MovieCard
-                key={m.id}
-                title={m.title}
-                posterPath={m.poster_path}
-              />
-            ) : (
-              <View style={styles.centerInner}>
-                <Text style={styles.emptyText}>No more titles.</Text>
-              </View>
-            )
-          }
-          backgroundColor="transparent"
-          stackSize={3}
-          cardVerticalMargin={8}
-          animateCardOpacity
-          onSwiping={handleSwiping}
-          onSwiped={(i) => {
-            setCurrentIndex(i + 1);
-            resetBg();
-          }}
-          onSwipedRight={(i) => {
-            const liked = deck[i];
-            if (liked) {
-              console.log("👍 Liked:", liked.title);
-              navigateToLikeConfirmation(liked);
+        {noCards ? (
+          <View style={styles.centerInner}>
+            <Text style={styles.emptyText}>
+              No titles match these filters right now.
+              {"\n"}
+              Try adjusting filters or tapping Refresh.
+            </Text>
+          </View>
+        ) : (
+          <Swiper
+            key={deckVersion} // 👈 force fresh swiper instance when deck changes pages
+            ref={swiperRef}
+            cards={deck}
+            cardStyle={styles.card}
+            renderCard={(m) =>
+              m ? (
+                <MovieCard
+                  key={m.id}
+                  title={m.title}
+                  posterPath={m.poster_path}
+                />
+              ) : (
+                <View style={styles.centerInner}>
+                  <Text style={styles.emptyText}>No more titles.</Text>
+                </View>
+              )
             }
-          }}
-          onSwipedLeft={(i) => {
-            const passed = deck[i];
-            if (passed) {
-              console.log("👎 Passed:", passed.title);
-            }
-          }}
-          onSwipedTop={(i) => {
-            const card = deck[i];
-            navigateToDetail(card);
-          }}
-          onSwipedBottom={() => {
-            // optional: make swipe-down also trigger next page
-            handleRefreshPress();
-          }}
-          verticalSwipe={true}
-          onTapCard={(i) => navigateToDetail(deck[i])}
-          onSwipedAborted={resetBg}
-          onSwipedAll={handleSwipedAll}
-        />
+            backgroundColor="transparent"
+            stackSize={3}
+            cardVerticalMargin={8}
+            animateCardOpacity
+            onSwiping={handleSwiping}
+            onSwiped={(i) => {
+              setCurrentIndex(i + 1);
+              resetBg();
+            }}
+            onSwipedRight={(i) => {
+              const liked = deck[i];
+              if (liked) {
+                console.log("👍 Liked:", liked.title);
+                navigateToLikeConfirmation(liked);
+              }
+            }}
+            onSwipedLeft={(i) => {
+              const passed = deck[i];
+              if (passed) {
+                console.log("👎 Passed:", passed.title);
+              }
+            }}
+            onSwipedTop={(i) => {
+              const card = deck[i];
+              navigateToDetail(card);
+            }}
+            onSwipedBottom={() => {
+              // optional: make swipe-down also trigger next page
+              handleRefreshPress();
+            }}
+            verticalSwipe={true}
+            onTapCard={(i) => navigateToDetail(deck[i])}
+            onSwipedAborted={resetBg}
+            onSwipedAll={handleSwipedAll}
+          />
+        )}
       </View>
 
       <SwipeActionBar
@@ -243,7 +268,7 @@ const ExploreSwiper: React.FC = () => {
       />
 
       {isLoadingMore && (
-        <View style={styles.loadingMore}>
+        <View className="loadingMore" style={styles.loadingMore}>
           <ActivityIndicator size="small" />
           <Text style={styles.loadingMoreText}>Loading more…</Text>
         </View>
@@ -270,6 +295,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: 24,
   },
 
   swiperWrap: {
@@ -286,7 +312,12 @@ const styles = StyleSheet.create({
   },
 
   loadingText: { marginTop: 8, color: "#ccc" },
-  emptyText: { color: "#ccc", textAlign: "center", paddingHorizontal: 24 },
+  emptyText: {
+    color: "#999",
+    textAlign: "center",
+    fontSize: 14,
+    lineHeight: 20,
+  },
 
   loadingMore: {
     position: "absolute",
