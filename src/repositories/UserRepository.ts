@@ -97,28 +97,6 @@ export class UserRepository {
         })
     }
 
-    // /**
-    // * Add a new user to Firestore
-    // * @param user User to add (without id); Firebase automatically generates unique ID
-    // * @returns doesn't return anything itself, but the caller can await the function 
-    // * to ensure the list has finished saving to the database
-    // */
-    // async add(user: Omit<UserDoc, 'id'>): Promise<void> {
-    //     const tasksCollection = collection(db, this.collectionName);
-    //     await addDoc(tasksCollection, {
-    //         user_name: user.user_name,
-    //         // email?: user.email,
-    //         phone_number: user.phone_number,
-    //         // birthday?: user.birthday,
-    //         join_date: user.join_date,
-    //         streaming_services: user.streaming_services,
-    //         // friends: user.friends,                 // userIds of friends
-    //         // profile_pic: user.profile_pic ?? 'https://reactnative.dev/img/tiny_logo.png', 
-    //         created_at: Timestamp.fromDate(new Date()), // whenever the creation is completed
-    //         updated_at: Timestamp.fromDate(new Date()),
-    //     });
-    // }
-    
     // we want the id to be the one that firebase auth assigned; 
     // so we dont wanna use addDoc which would be creating a random ID for new documents
     async create(uid: string, data: Omit<UserDoc, 'id'>) {
@@ -163,22 +141,6 @@ export class UserRepository {
         const userDoc = doc(db, this.collectionName, userId);
         await deleteDoc(userDoc);
     }
-
-    // /**
-    // * Toggle the completed status of a list
-    // * @param list list to toggle
-    // */
-    // async toggleVisibility(list: UserDoc): Promise<void> {
-    //     if (!list.id) {
-    //         throw new Error('List must have an id to be updated');
-    //     }
-        
-    //     const listDoc = doc(db, this.collectionName, list.id);
-    //     await updateDoc(listDoc, {
-    //         visibility: !list.visibility,
-    //     });
-    
-    // }
 }
 
 // Export a singleton instance    
