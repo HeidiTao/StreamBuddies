@@ -101,7 +101,7 @@ const ProfileView: React.FC<Props> = ({ navigation }) => {
 
 
       {/* User Info */}
-      <View style={profileStatStyles.userSection}>
+      {/* <View style={profileStatStyles.userSection}>
         <View style={profileStatStyles.avatarContainer}>
           <View style={profileStatStyles.avatar}>
             <Ionicons name="person" size={40} color="#999" />
@@ -114,7 +114,7 @@ const ProfileView: React.FC<Props> = ({ navigation }) => {
         >
           <Text style={profileStatStyles.viewAll}>View All</Text>
         </TouchableOpacity>
-      </View>
+      </View> */}
 
       {/* Watch Time Counter */}
       <View style={profileStatStyles.watchTimeSection}>
