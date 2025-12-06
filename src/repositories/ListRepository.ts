@@ -117,11 +117,13 @@ export class ListRepository {
         if (!list.id) {
             throw new Error('List must have an id to be updated');
         }
-        
+        const oldVisibility = list.visibility;
+        console.log("toggleVisibility is being called! old visiibility: ", oldVisibility);
         const listDoc = doc(db, this.collectionName, list.id);
         await updateDoc(listDoc, {
-            visibility: !list.visibility,
+            visibility: (oldVisibility == "private") ? "shared" : "private",
         });
+        console.log("new visibility: ", (oldVisibility == "private") ? "shared" : "private");
     }
 }
 
