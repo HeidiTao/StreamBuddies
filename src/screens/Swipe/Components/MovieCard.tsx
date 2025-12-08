@@ -89,12 +89,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     backgroundColor: "#ffffff",
+    alignItems: "center", // 👈 center the title container horizontally
   },
   title: {
     fontSize: 14,
     fontWeight: "700",
     color: "#111",
+    textAlign: "center", // 👈 center the text itself
   },
 });
+
 
 export default MovieCard;
