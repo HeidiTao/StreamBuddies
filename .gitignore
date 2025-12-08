@@ -42,3 +42,6 @@ yarn-error.*
 
 # coverage files
 coverage/
+
+# Ignore Windows Alternate Data Streams files
+*:Zone.Identifier

@@ -1,5 +1,7 @@
 // src/navigation/types.ts
 
+import { WatchlistDoc } from "../sample_structs";
+
 export interface Group {
   id?: string;
   code?: string;
@@ -42,7 +44,7 @@ export type RootStackParamList = {
   
   // Lists Stack
   Lists: undefined;
-  ListDetail: { listId: string }; // adjust params as needed 
+  ListDetail: { list: WatchlistDoc}; //{ listId: string }; // adjust params as needed 
     // list: WatchlistDoc
   NewList: undefined;
   

@@ -4,10 +4,12 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../navigation/types";
 import React from "react";
 import { Timestamp } from "firebase/firestore";
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { WatchlistDoc, WatchlistItemDoc } from "../../sample_structs";
 import { useLists } from "../../hooks/useLists";
 import ListRowView from "./ListRowView";
+import { listStyles } from "../../styles/listStyles";
 
 type ListsViewNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Lists'>
 
@@ -30,22 +32,39 @@ const ListsView: React.FC<Props> = ({ navigation }) => {
 
   return (
     <ScrollView>
+      <LinearGradient
+            colors={['#E8D5F0', '#D5E8F8']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{
+              paddingTop: 60,
+              paddingBottom: 20,
+              paddingHorizontal: 20,
+            }}
+          >
+      <Text style={listStyles.listsTitle}>My Lists</Text>
+      </LinearGradient>
+      
+      <View style={listStyles.listsContainer}>
       <View>
         <ListRowView 
           key={'new list'}
           list={newListPlaceholder}
+          isLastList={lists.length==0}
           onPress={() => navigation.navigate('NewList')}
         />
       </View>
+      
       <View>
-        {lists.map((list) => (
+        {lists.map((list, index) => (
           <ListRowView
             key={list.id}
             list={list}
+            isLastList={false}
             onPress={() => navigation.navigate('ListDetail', { list: list })}
           />
-          
         ))}
+      </View>
       </View>
     </ScrollView>
   );

@@ -120,9 +120,9 @@ const SearchStackScreen = () => {
 const ListsStackScreen = () => {
   return (
     <Stack.Navigator>
-      <Stack.Screen name="Lists" component={ListsView} options={{ title: "My Lists" }} />
-      <Stack.Screen name="ListDetail" component={ListDetailView} options={{ title: "List Detail" }} />
-      <Stack.Screen name="NewList" component={NewListView} options={{ title: "New List" }} />
+      <Stack.Screen name="Lists" component={ListsView} options={{ title: "My Lists", headerShown: false }} />
+      <Stack.Screen name="ListDetail" component={ListDetailView} options={{ title: "List Detail", headerShown: false  }} />
+      <Stack.Screen name="NewList" component={NewListView} options={{ title: "New List", headerShown: false  }} />
     </Stack.Navigator>
   );
 };

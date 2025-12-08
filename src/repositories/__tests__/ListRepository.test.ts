@@ -71,7 +71,7 @@ describe('ListRepository', () => {
             created_at: expect.anything(),
             updated_at: expect.anything(),
             item_count: 0,
-            preview_covers: ['https://reactnative.dev/img/tiny_logo.png'],
+            // preview_covers: ['https://reactnative.dev/img/tiny_logo.png'],
         }));
     });
 

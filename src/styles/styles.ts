@@ -6,7 +6,7 @@ export const colors = {
   mint_green: '#a1f1cbff',
   sky_blue: '#6da0dbff',
   light_violet: '#ddc0f1c8',
-  off_white: '#f7f4f1ff',
+  off_white: 'rgba(255, 248, 251, 1)',
   border: '#e0e0e0',
   grey: '#e3dfdbdd',
   gray: '#92908edd',
