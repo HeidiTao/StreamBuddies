@@ -186,25 +186,30 @@ const AppNavigator: React.FC = () => {
         <Tab.Navigator
           initialRouteName="ExploreTab"
           screenOptions={({ route }) => ({
+            tabBarShowLabel: false,   // 👈 remove ALL labels
+
             tabBarIcon: ({ color, size }) => {
-              let iconName: keyof typeof Ionicons.glyphMap = "ellipse";
-              if (route.name === "ExploreTab") iconName = "balloon";
-              else if (route.name === "SearchTab") iconName = "search";
-              else if (route.name === "ListsTab") iconName = "bookmarks";
-              else if (route.name === "GroupsTab") iconName = "people-circle";
-              else if (route.name === "ProfileTab") iconName = "person";
-              return <Ionicons name={iconName} size={size} color={color} />;
+              let icon: keyof typeof Ionicons.glyphMap = "ellipse";
+
+              if (route.name === "ExploreTab") icon = "home";          // 👈 changed from "balloon"
+              else if (route.name === "SearchTab") icon = "search";
+              else if (route.name === "ListsTab") icon = "bookmarks";
+              else if (route.name === "GroupsTab") icon = "people-circle";
+              else if (route.name === "ProfileTab") icon = "person";
+
+              return <Ionicons name={icon} size={size} color={color} />;
             },
+
             headerShown: false,
             tabBarActiveTintColor: "black",
             tabBarInactiveTintColor: "gray",
           })}
         >
-          <Tab.Screen name="ExploreTab" component={ExploreStackScreen} options={{ title: "Explore" }} />
-          <Tab.Screen name="SearchTab" component={SearchStackScreen} options={{ title: "Search" }} />
-          <Tab.Screen name="ListsTab" component={ListsStackScreen} options={{ title: "Lists" }} />
-          <Tab.Screen name="GroupsTab" component={GroupsStackScreen} options={{ title: "Groups" }} />
-          <Tab.Screen name="ProfileTab" component={ProfileStackScreen} options={{ title: "Profile" }} />
+          <Tab.Screen name="ExploreTab" component={ExploreStackScreen} />
+          <Tab.Screen name="SearchTab" component={SearchStackScreen} />
+          <Tab.Screen name="ListsTab" component={ListsStackScreen} />
+          <Tab.Screen name="GroupsTab" component={GroupsStackScreen} />
+          <Tab.Screen name="ProfileTab" component={ProfileStackScreen} />
         </Tab.Navigator>
       </NavigationContainer>
     </WatchStatsProvider>

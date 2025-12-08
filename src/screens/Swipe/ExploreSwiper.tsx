@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Animated,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import Swiper from "react-native-deck-swiper";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
@@ -77,7 +78,7 @@ const ExploreSwiper: React.FC = () => {
    * deckVersion is used as a React `key` for the Swiper component.
    * When we increment this, React unmounts/remounts Swiper, which
    * resets its internal index back to 0. This is how we get Swiper
-   * to “start at the top” of a newly loaded deck.
+   * to "start at the top" of a newly loaded deck.
    */
   const [deckVersion, setDeckVersion] = useState(0);
 
@@ -85,12 +86,12 @@ const ExploreSwiper: React.FC = () => {
    * Background color transitions:
    * - bgValue ∈ [-1, 0, 1]
    *   - -1 = strong left swipe (red)
-   *   -  0 = neutral (white)
+   *   -  0 = neutral (transparent/very light to not interfere with gradient)
    *   -  1 = strong right swipe (green)
    */
   const bgColor = bgValue.interpolate({
     inputRange: [-1, 0, 1],
-    outputRange: ["#d32f2f", "#ffffff", "#2e7d32"],
+    outputRange: ["#d32f2f", "rgba(245, 245, 245, 0.3)", "#2e7d32"],
   });
 
   /**
@@ -241,7 +242,7 @@ const ExploreSwiper: React.FC = () => {
   if (loading && !deck.length) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color="#8B7BC4" />
         <Text style={styles.loadingText}>Loading Explore…</Text>
       </View>
     );
@@ -266,17 +267,27 @@ const ExploreSwiper: React.FC = () => {
         ]}
       />
 
-      {/* Top bar: Movies/Shows toggle, Filter button, Trending button, Refresh button */}
-      <MediaToggleBar
-        mediaType={mediaType}
-        onChange={(mt: MediaType) => switchMediaType(mt)}
-        bottomLabel="🔥 Trending"
-        onBottomPress={() => navigation.navigate("Trending")}
-        rightLabel={refreshing ? "Refreshing…" : "Refresh"}
-        onRightPress={handleRefreshPress}
-        filters={filters}
-        onFiltersChange={setFilters}
-      />
+      {/* Gradient Header matching Groups page - extends to top */}
+      <LinearGradient
+        colors={["#e8d6f0", "#d5e8f7"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.gradientHeader}
+      >
+        <View style={styles.headerContent}>
+          {/* Top bar: Movies/Shows toggle, Filter button, Trending button, Refresh button */}
+          <MediaToggleBar
+            mediaType={mediaType}
+            onChange={(mt: MediaType) => switchMediaType(mt)}
+            bottomLabel="Trending"
+            onBottomPress={() => navigation.navigate("Trending")}
+            rightLabel={refreshing ? "Refreshing…" : "Refresh"}
+            onRightPress={handleRefreshPress}
+            filters={filters}
+            onFiltersChange={setFilters}
+          />
+        </View>
+      </LinearGradient>
 
       <View style={styles.swiperWrap}>
         {noCards ? (
@@ -355,10 +366,10 @@ const ExploreSwiper: React.FC = () => {
         onLike={handleLikePress}
       />
 
-      {/* Small loading pill while we’re fetching the next page in the background */}
+      {/* Small loading pill while we're fetching the next page in the background */}
       {isLoadingMore && (
         <View className="loadingMore" style={styles.loadingMore}>
-          <ActivityIndicator size="small" />
+          <ActivityIndicator size="small" color="#8B7BC4" />
           <Text style={styles.loadingMoreText}>Loading more…</Text>
         </View>
       )}
@@ -367,7 +378,18 @@ const ExploreSwiper: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { 
+    flex: 1,
+  },
+
+  gradientHeader: {
+    marginTop: 0,
+  },
+
+  headerContent: {
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
 
   content: {
     flex: 1,
@@ -378,7 +400,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#ffffffff",
+    backgroundColor: "#f5f5f5",
   },
   centerInner: {
     flex: 1,
@@ -400,9 +422,13 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
 
-  loadingText: { marginTop: 8, color: "#ccc" },
+  loadingText: { 
+    marginTop: 8, 
+    color: "#8B7BC4",
+    fontSize: 14,
+  },
   emptyText: {
-    color: "#999",
+    color: "#8B7BC4",
     textAlign: "center",
     fontSize: 14,
     lineHeight: 20,
@@ -417,11 +443,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 999,
-    backgroundColor: "rgba(255, 255, 255, 1)",
+    backgroundColor: "rgba(213, 206, 235, 0.95)",
   },
   loadingMoreText: {
     marginLeft: 8,
-    color: "#ccc",
+    color: "#8B7BC4",
     fontSize: 12,
   },
 });

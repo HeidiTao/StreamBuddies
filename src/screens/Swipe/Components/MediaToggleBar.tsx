@@ -2,6 +2,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import type { MediaType } from "../useExploreSwiper";
 import FilterButton, { MediaFilters } from "./FilterButton";
 
@@ -9,15 +10,14 @@ type Props = {
   mediaType: MediaType;
   onChange: (media: MediaType) => void;
 
-  bottomLabel?: string; // "Trending" or "Swipe"
+  bottomLabel?: string;
   onBottomPress?: () => void;
 
-  rightLabel?: string; // usually "Refresh"
+  rightLabel?: string;
   onRightPress?: () => void;
 
-  // Filters
   filters: MediaFilters;
-  onChangeFilters: (filters: MediaFilters) => void;
+  onFiltersChange: (filters: MediaFilters) => void;
 };
 
 const MediaToggleBar: React.FC<Props> = ({
@@ -28,126 +28,152 @@ const MediaToggleBar: React.FC<Props> = ({
   rightLabel,
   onRightPress,
   filters,
-  onChangeFilters,
+  onFiltersChange,
 }) => {
   return (
-    <View style={styles.wrapper}>
-      {/* TOP: Movies / Shows toggle */}
-      <View style={styles.toggleRow}>
-        <TouchableOpacity
-          style={[styles.toggleButton, mediaType === "movie" && styles.active]}
-          onPress={() => onChange("movie")}
-        >
-          <Text
-            style={[
-              styles.toggleText,
-              mediaType === "movie" && styles.activeText,
-            ]}
-          >
-            Movies
-          </Text>
-        </TouchableOpacity>
+    <View style={styles.gradientWrapper}>
+      <LinearGradient
+        colors={["#e8d6f0", "#d5e8f7"]}
+        style={StyleSheet.absoluteFill}
+      />
 
-        <TouchableOpacity
-          style={[styles.toggleButton, mediaType === "tv" && styles.active]}
-          onPress={() => onChange("tv")}
-        >
-          <Text
-            style={[
-              styles.toggleText,
-              mediaType === "tv" && styles.activeText,
-            ]}
-          >
-            Shows
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <View style={styles.wrapper}>
+        {/* TOP: Movies / Shows toggle */}
+        <View style={styles.toggleRow}>
+          <View style={styles.toggleContainer}>
+            <TouchableOpacity
+              style={[
+                styles.toggleButton,
+                mediaType === "movie" && styles.active,
+              ]}
+              onPress={() => onChange("movie")}
+            >
+              <Text
+                style={[
+                  styles.toggleText,
+                  mediaType === "movie" && styles.activeText,
+                ]}
+              >
+                Movies
+              </Text>
+            </TouchableOpacity>
 
-      {/* BOTTOM: Filter (left) | main (center) | Refresh (right) */}
-      <View style={styles.bottomRow}>
-        {/* LEFT — Filter */}
-        <View style={styles.leftFilterContainer}>
-          <FilterButton value={filters} onChange={onChangeFilters} />
+            <TouchableOpacity
+              style={[
+                styles.toggleButton,
+                mediaType === "tv" && styles.active,
+              ]}
+              onPress={() => onChange("tv")}
+            >
+              <Text
+                style={[
+                  styles.toggleText,
+                  mediaType === "tv" && styles.activeText,
+                ]}
+              >
+                Shows
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* CENTER — Swipe / Trending */}
-        {bottomLabel && onBottomPress && (
-          <TouchableOpacity
-            style={styles.bottomMainButton}
-            onPress={onBottomPress}
-          >
-            <Text style={styles.bottomMainText}>{bottomLabel}</Text>
-          </TouchableOpacity>
-        )}
+        {/* BOTTOM: Filter | center | Refresh */}
+        <View style={styles.bottomRow}>
+          <View style={styles.leftFilterContainer}>
+            <FilterButton value={filters} onChange={onFiltersChange} />
+          </View>
 
-        {/* RIGHT — Refresh */}
-        {rightLabel && onRightPress && (
-          <TouchableOpacity
-            style={styles.refreshButton}
-            onPress={onRightPress}
-          >
-            <Ionicons
-              name="refresh"
-              size={18}
-              color="#1c1c1c"
-              style={{ marginRight: 5 }}
-            />
-            <Text style={styles.refreshText}>{rightLabel}</Text>
-          </TouchableOpacity>
-        )}
+          {bottomLabel && onBottomPress && (
+            <TouchableOpacity
+              style={styles.bottomMainButton}
+              onPress={onBottomPress}
+            >
+              <Text style={styles.bottomMainText}>{bottomLabel}</Text>
+            </TouchableOpacity>
+          )}
+
+          {rightLabel && onRightPress && (
+            <TouchableOpacity
+              style={styles.refreshButton}
+              onPress={onRightPress}
+            >
+              <Ionicons
+                name="refresh"
+                size={16}
+                color="#8B7BC4"
+                style={{ marginRight: 4 }}
+              />
+              <Text style={styles.refreshText}>{rightLabel}</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  wrapper: {
+  // ADDED wrapper to apply gradient background
+  gradientWrapper: {
+    flex: 1,
     width: "100%",
-    backgroundColor: "#fff",
-    paddingBottom: 10,
   },
 
-  // top row
+  wrapper: {
+    width: "100%",
+    paddingBottom: 10,
+  },
+  
+  // ---- your styles unchanged below ----
   toggleRow: {
     flexDirection: "row",
     paddingHorizontal: 16,
     paddingTop: 10,
-    gap: 10,
     justifyContent: "center",
+    marginBottom: 8,
+  },
+
+  toggleContainer: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    borderRadius: 25,
+    padding: 4,
   },
 
   toggleButton: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#444",
+    paddingVertical: 10,
+    paddingHorizontal: 28,
+    borderRadius: 20,
+    minWidth: 100,
     alignItems: "center",
-    backgroundColor: "#000",
   },
 
   active: {
-    backgroundColor: "#d6eadf",
-    borderColor: "#d6eadf",
+    backgroundColor: "#ffffff",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
 
   toggleText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "600",
-    color: "#aaa",
+    color: "#8B7BC4",
+    opacity: 0.6,
   },
 
   activeText: {
-    color: "#000",
+    color: "#8B7BC4",
     fontWeight: "700",
+    opacity: 1,
   },
 
-  // bottom row
   bottomRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 6,
     paddingHorizontal: 16,
   },
 
@@ -157,34 +183,44 @@ const styles = StyleSheet.create({
   },
 
   bottomMainButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 22,
-    backgroundColor: "#eac4d5",
-    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    borderRadius: 20,
     alignSelf: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 1,
   },
 
   bottomMainText: {
     fontSize: 14,
-    fontWeight: "700",
-    color: "#333",
+    fontWeight: "600",
+    color: "#8B7BC4",
   },
 
   refreshButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#CFEAFD",
-    paddingVertical: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    paddingVertical: 10,
     paddingHorizontal: 14,
-    borderRadius: 12,
+    borderRadius: 20,
     position: "absolute",
     right: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 1,
   },
 
   refreshText: {
     fontSize: 14,
-    fontWeight: "700",
-    color: "#1c1c1c",
+    fontWeight: "600",
+    color: "#8B7BC4",
   },
 });
 
