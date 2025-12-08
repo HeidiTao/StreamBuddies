@@ -100,7 +100,7 @@ const ListView: React.FC<Props> = ({ navigation }) => {
   }
 
   return (
-    <ScrollView>
+    <ScrollView style={listDetailStyles.detailsContainer}>
     <TopGradientBackground>
       {isEditing ? (
         <>        

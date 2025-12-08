@@ -74,7 +74,7 @@ export class ListRepository {
             created_at: Timestamp.fromDate(new Date()), // whenever the creation is completed
             updated_at: Timestamp.fromDate(new Date()),
             item_count: 0,               // denorm
-            preview_covers: ['https://reactnative.dev/img/tiny_logo.png'],
+            // preview_covers: ['https://reactnative.dev/img/tiny_logo.png'],
         });
     }
 

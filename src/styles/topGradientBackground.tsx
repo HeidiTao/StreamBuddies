@@ -1,6 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import React, { ReactNode } from "react";
 import { View } from "react-native";
+import { colors } from "./styles";
 
 type TopGradientBackgroundProps = {
   children: ReactNode;
@@ -25,7 +26,7 @@ export const TopGradientBackground = ({ children }: TopGradientBackgroundProps) 
 
       {/* Vertical fade overlay */}
       <LinearGradient
-        colors={['rgba(255, 255, 255, 0.3)', 'rgba(245,245,245,1)']} // transparent -> white
+        colors={['rgba(255, 255, 255, 0.3)', colors.off_white]} // transparent -> white
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }} // vertical
         style={{ position: 'absolute',

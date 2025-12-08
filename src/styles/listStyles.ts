@@ -2,26 +2,39 @@ import { Platform, StyleSheet } from "react-native";
 import { colors } from "./styles";
 
 export const listStyles = StyleSheet.create({
-  
+  listsContainer: {
+    // marginTop: 75,
+    flex: 1, 
+    backgroundColor: colors.off_white,
+    // flexDirection: 'row', 
+    // justifyContent: 'space-between', 
+    // alignItems: 'center' 
+  },
+  listsTitle: {
+    fontSize: 32,
+    // fontWeight: 'bold',
+    marginLeft: 15,
+    // margin: 10,
+  },
   listRowContainer: {
     // backgroundColor: colors.off_white,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    // borderBottomWidth: 1,
+    // borderBottomColor: colors.border,
     flexDirection: 'row',
-    alignItems: 'center', 
+    alignItems: 'flex-start', 
     justifyContent: 'flex-start',// 'space-between', 
     padding: 30,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-      },
-      android: {
-          elevation: 2,
-      },
-    })
+    // ...Platform.select({
+    //   ios: {
+    //     shadowColor: '#000',
+    //     shadowOffset: { width: 0, height: 1 },
+    //     shadowOpacity: 0.1,
+    //     shadowRadius: 2,
+    //   },
+    //   android: {
+    //       elevation: 2,
+    //   },
+    // })
   },
   listRowLeftSection: {
     flexDirection: 'row',
@@ -43,23 +56,32 @@ export const listStyles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: colors.sky_blue,
+    marginBottom: 5,
   },
   listDesc: {
     fontSize: 12,
     color: colors.sky_blue,
     marginLeft: 4,
-  }
+  },
+  listDivider: {
+    height: 1.5,
+    // marginVertical: 8,      // spacing between items
+    // borderRadius: 1,      // makes it look smoother
+  },
 
 })
 
 
 export const listDetailStyles = StyleSheet.create({
+  detailsContainer: {
+    backgroundColor: 'rgba(255, 248, 251, 1)',
+  },
   listDataContainer: {
     flexDirection: 'row',
     textAlign: 'left',
     alignItems: 'center', 
     justifyContent: 'flex-start',
-    marginTop: 15,
+    marginTop: 60,
     padding: 15,
   },
   listDataLeftSection: {
