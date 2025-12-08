@@ -9,6 +9,7 @@ import {
   FlatList,
   Image,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../../navigation/types";
@@ -242,30 +243,35 @@ const ExploreGridView: React.FC = () => {
   };
 
   const renderItem = ({ item }: { item: MediaItem }) => (
-    <TouchableOpacity
-      style={styles.posterWrapper}
-      onPress={() => handlePressCard(item)}
-    >
-      {item.poster_path ? (
-        <Image
-          source={{
-            uri: `https://image.tmdb.org/t/p/w342/${item.poster_path}`,
-          }}
-          style={styles.posterImage}
-          resizeMode="cover"
-        />
-      ) : (
-        <View style={styles.posterPlaceholder}>
-          <Text style={styles.posterPlaceholderText}>{item.title}</Text>
-        </View>
-      )}
-    </TouchableOpacity>
+    <View style={styles.posterContainer}>
+      <TouchableOpacity
+        style={styles.posterWrapper}
+        onPress={() => handlePressCard(item)}
+      >
+        {item.poster_path ? (
+          <Image
+            source={{
+              uri: `https://image.tmdb.org/t/p/w342/${item.poster_path}`,
+            }}
+            style={styles.posterImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.posterPlaceholder}>
+            <Text style={styles.posterPlaceholderText}>{item.title}</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+      <Text style={styles.titleText} numberOfLines={2}>
+        {item.title}
+      </Text>
+    </View>
   );
 
   if (loading && items.length === 0) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color="#8B7BC4" />
         <Text style={styles.loadingText}>Loading titles…</Text>
       </View>
     );
@@ -273,17 +279,26 @@ const ExploreGridView: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Media toggle, filter + Swipe / Refresh row */}
-      <MediaToggleBar
-        mediaType={mediaType}
-        onChange={handleChangeMediaType}
-        bottomLabel="Swipe"
-        onBottomPress={() => navigation.goBack()} // back to swiper
-        rightLabel={refreshing ? "Refreshing…" : "Refresh"}
-        onRightPress={handleRefreshPress}
-        filters={filters}
-        onFiltersChange={setFilters}
-      />
+      {/* Gradient Header matching Groups page - extends to top */}
+      <LinearGradient
+        colors={["#e8d6f0", "#d5e8f7"]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.gradientHeader}
+      >
+        <View style={styles.headerContent}>
+          <MediaToggleBar
+            mediaType={mediaType}
+            onChange={handleChangeMediaType}
+            bottomLabel="Swipe"
+            onBottomPress={() => navigation.goBack()} // back to swiper
+            rightLabel={refreshing ? "Refreshing…" : "Refresh"}
+            onRightPress={handleRefreshPress}
+            filters={filters}
+            onFiltersChange={setFilters}
+          />
+        </View>
+      </LinearGradient>
 
       {/* Grid of posters */}
       <FlatList
@@ -299,7 +314,7 @@ const ExploreGridView: React.FC = () => {
         ListFooterComponent={
           loadingMore ? (
             <View style={styles.loadingMore}>
-              <ActivityIndicator size="small" />
+              <ActivityIndicator size="small" color="#8B7BC4" />
             </View>
           ) : null
         }
@@ -311,18 +326,28 @@ const ExploreGridView: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ffffff",
+    backgroundColor: "#f5f5f5",
+  },
+
+  gradientHeader: {
+    marginTop: 0,
+  },
+
+  headerContent: {
+    paddingTop: 10,
+    paddingBottom: 10,
   },
 
   center: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#ffffff",
+    backgroundColor: "#f5f5f5",
   },
   loadingText: {
     marginTop: 8,
-    color: "#666",
+    color: "#8B7BC4",
+    fontSize: 14,
   },
 
   gridContent: {
@@ -332,13 +357,16 @@ const styles = StyleSheet.create({
   gridRow: {
     justifyContent: "space-between",
   },
-  posterWrapper: {
+  posterContainer: {
     flex: 1 / 3,
-    aspectRatio: 2 / 3,
     margin: 4,
+  },
+  posterWrapper: {
+    aspectRatio: 2 / 3,
     borderRadius: 10,
     overflow: "hidden",
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#D5CEEB",
+    marginBottom: 6,
   },
   posterImage: {
     width: "100%",
@@ -349,11 +377,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 4,
+    backgroundColor: "#D5CEEB",
   },
   posterPlaceholderText: {
     fontSize: 10,
     textAlign: "center",
-    color: "#555",
+    color: "#8B7BC4",
+  },
+  titleText: {
+    fontSize: 11,
+    color: "#333",
+    textAlign: "center",
+    paddingHorizontal: 2,
   },
 
   loadingMore: {
