@@ -4,7 +4,7 @@ import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
 import { signInWithPhoneNumber } from "firebase/auth";
 import { Text, View, TextInput, Button, TouchableWithoutFeedback, 
   Keyboard, TouchableOpacity, Image, KeyboardAvoidingView, Platform, 
-  ScrollView, ActivityIndicator} from "react-native";
+  ScrollView, ActivityIndicator } from "react-native";
 import { db, auth } from "../../../config/firebase";
 import { useState, useRef, useEffect } from "react";
 // import { doc, getDoc } from "firebase/firestore";
@@ -137,7 +137,7 @@ const LogInView: React.FC<Props> = ({ navigation }) => {
           keyboardType="phone-pad"
           style={logInStyles.inputBlock}
         />
-        {/* <Text>{rawNumber}</Text> */} {/* just for testing purposes */}
+        {/* <Text>{rawNumber}</Text> */}{/* just for testing purposes */}
         <TouchableOpacity
           style={logInStyles.button}
           // title="Send Code"
