@@ -4,7 +4,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
-import { View, Text } from "react-native";
+import { View, Text, ActivityIndicator } from "react-native";
 
 import { RootStackParamList } from "./types";
 import ExploreView from "../screens/ExploreView";
@@ -143,9 +143,16 @@ const GroupsStackScreen = () => {
 };
 
 const ProfileStackScreen = () => {
-  const { authUser } = useAuth();
-  const { profile } = useUserProfile(authUser?.uid);
+  const { authUser, loading: authLoading } = useAuth();
+  const { profile, loading: profileLoading } = useUserProfile(authUser?.uid);
   
+  if (authLoading || profileLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {profile ? (<>
