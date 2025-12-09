@@ -1,6 +1,6 @@
 import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { ScrollView, Text, TextInput, Button, View, TouchableOpacity } from "react-native";
+import { ScrollView, Text, TextInput, Button, View, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useState } from "react";
 import CheckBox from 'expo-checkbox';
 
@@ -68,6 +68,14 @@ const RegisterView: React.FC<Props> = ({ navigation }) => {
       console.log(err);
     }
   }
+  
+  if (authLoading || profileLoading) {
+    return (
+    <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+      <ActivityIndicator size="large" color="#007AFF" />
+    </View>
+    )
+  }
 
   return (<>
   <ScrollView>
@@ -88,6 +96,7 @@ const RegisterView: React.FC<Props> = ({ navigation }) => {
 
     {/* <input type="date"></input> */}
 
+    <View style={{marginVertical: 15}}></View>
     <Text style={newProfileStyles.label}>Streaming service subscriptions</Text>
     <Text>so that we can recommend more suitable movies and shows for you!</Text>
     <View style={newProfileStyles.optionsWrapper}>

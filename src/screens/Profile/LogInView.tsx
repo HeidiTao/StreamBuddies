@@ -2,7 +2,9 @@ import { useNavigation, useRoute, RouteProp } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
 import { signInWithPhoneNumber } from "firebase/auth";
-import { Text, View, TextInput, Button, TouchableWithoutFeedback, Keyboard, TouchableOpacity } from "react-native";
+import { Text, View, TextInput, Button, TouchableWithoutFeedback, 
+  Keyboard, TouchableOpacity, Image, KeyboardAvoidingView, Platform, 
+  ScrollView, ActivityIndicator} from "react-native";
 import { db, auth } from "../../../config/firebase";
 import { useState, useRef, useEffect } from "react";
 // import { doc, getDoc } from "firebase/firestore";
@@ -12,6 +14,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { useUserProfile } from "../../hooks/useUserProfile";
 import { usePhoneFormatter } from "../../hooks/usePhoneFormatter";
 import { logInStyles } from "../../styles/profileStyles";
+import { FullGradientBackground } from "../../styles/fullGradientBackground";
 
 type LogInViewNavigationProp = NativeStackNavigationProp<RootStackParamList, 'LogIn'>
 
@@ -27,7 +30,7 @@ const LogInView: React.FC<Props> = ({ navigation }) => {
   const [code, setCode] = useState("");
   const [confirmation, setConfirmation] = useState<ConfirmationResult|null>(null);
   const { authUser, loading: authLoading } = useAuth();
-  const { profile, loading: profileLoading } = useUserProfile(authUser?.uid);
+  const { profile = null, loading: profileLoading = true } = useUserProfile(authUser?.uid);
   const [profileInitialized, setProfileInitialized] = useState(false);
   const { rawNumber, formattedNumber, setPhoneFromInput } = usePhoneFormatter();
 
@@ -93,12 +96,36 @@ const LogInView: React.FC<Props> = ({ navigation }) => {
     // }
   }, [authUser, profile, profileLoading])//[authUser, profile])
 
+  if (authLoading || profileLoading) {
+    return (
+    <View style={{ paddingVertical: 40, alignItems: 'center' }}>
+      <ActivityIndicator size="large" color="#007AFF" />
+    </View>
+    )
+  }
+  
+
   return (<TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-    <View style={logInStyles.container}>
+    <KeyboardAvoidingView
+      style={logInStyles.overallcontainer}
+      behavior={Platform.OS === "ios" ? "padding" : "height"} // iOS uses padding, Android uses height
+      keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 20} // tweak this if you have a header
+    >
+      
+    <FullGradientBackground>
+    {/* <View style={logInStyles.container}> */}
       <FirebaseRecaptchaVerifierModal
         ref={recaptchaVerifier}
         firebaseConfig={auth.app.options}
       />
+      
+      <ScrollView style={logInStyles.logInContent}>
+        <Image
+                source={
+                  require("../../../assets/stream_buddies.png")
+                }
+                style={logInStyles.name}
+              />
       
       {!confirmation ? (<>
         <Text style={logInStyles.instructionText}>Sign up or log in: </Text>
@@ -118,7 +145,6 @@ const LogInView: React.FC<Props> = ({ navigation }) => {
         >
           <Text style={logInStyles.buttonText}>Send Code</Text>
         </TouchableOpacity>
-
       </>) : (<>
         <TouchableOpacity
           style={logInStyles.backButton}
@@ -146,7 +172,11 @@ const LogInView: React.FC<Props> = ({ navigation }) => {
           <Text style={logInStyles.buttonText}>Verify</Text>
         </TouchableOpacity></>
       )}
-    </View></TouchableWithoutFeedback>
+      
+      </ScrollView>
+    </FullGradientBackground>
+    </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 
   // return (

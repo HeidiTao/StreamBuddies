@@ -2,14 +2,17 @@ import { Platform, StyleSheet } from "react-native";
 import { colors } from "./styles";
 
 export const logInStyles = StyleSheet.create({
-  container: {
-    marginTop: 70,
-    marginHorizontal: 15,
-    padding: 10,
-    flexDirection: 'column',
-    alignContent: 'center',
+  overallcontainer: {
     flex: 1, // so that the keyboard dismiss thing could work 
+    backgroundColor: colors.off_white,
+  },
+  container: {
+    // padding: 10,
+    // flexDirection: 'column',
+    // alignContent: 'center',
     // alignItems: 'center', // nope 
+    // flex: 1,
+    // backgroundColor: colors.off_white,
   },
   instructionText: {
     fontSize: 16,
@@ -23,6 +26,11 @@ export const logInStyles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.grey,
     borderRadius: 10,
+
+    shadowColor: "#000",
+    shadowOffset: { width: 0.1, height: 0.1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 1,
   },
   disabledInput: {
     fontSize: 14,
@@ -62,16 +70,30 @@ export const logInStyles = StyleSheet.create({
     backgroundColor: colors.grey,
     alignSelf: 'flex-end',
     marginVertical: 10,
-  }
+  },
+  logInContent: {
+    margin: 30,
+  },
+  name: {
+    width: 250,
+    height: 150,
+    alignSelf: 'center',
+    marginTop: 200,
+    marginBottom: 150,
+  },
 })
 
 export const profileStyles = StyleSheet.create({
   container: {
-    marginTop: 70,
-    margin: 10, 
-    padding: 10,
+    // marginTop: 70,
+    // margin: 10, 
+    // padding: 10,
+    flex: 1,
+    backgroundColor: 'rgba(255, 248, 251, 1)',
   },
   topSectionContainer: {
+    marginTop: 70,
+    marginHorizontal: 15,
     flexDirection: 'row',
     textAlign: 'left', 
     alignItems: 'center', 
@@ -103,25 +125,37 @@ export const profileStyles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: colors.light_violet,
     alignSelf: 'flex-end',
+    marginBottom: 15,
+    marginHorizontal: 15,
   },
   logOutButtonText: {
     fontSize: 16, 
     textAlign: 'center',
   },
-  acknowledgement: {
-    fontSize: 12,
+  tmdbContainer: {
+    flexDirection: 'row',
+    textAlign: 'left', 
+    alignItems: 'center', 
+    justifyContent: 'flex-start',
     margin: 10,
   },
+  acknowledgement: {
+    width: '80%',
+    fontSize: 12,
+    margin: 5,
+    // flex: 1,
+  },
   tmdbLogo: {
-    width: 70, 
+    width: 70,
     height: 30, 
+    // flex: 1,
   },
 })
 
 export const profileStatStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: colors.off_white,//'#fff',
     paddingTop: 60, // Adjust this value to move content up or down
   },
   userSection: {
@@ -157,7 +191,7 @@ export const profileStatStyles = StyleSheet.create({
   watchTimeSection: {
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: '#fff',
+    backgroundColor: colors.off_white//'#fff',
   },
   watchTimeCard: {
     flexDirection: 'row',
