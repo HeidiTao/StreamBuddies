@@ -150,7 +150,7 @@ const ProfileStackScreen = () => {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {profile ? (<>
         {/* // signed in view: user profile */}
-        <Stack.Screen name="Profile" component={ProfileView} options={{ title: "My Account" }} />
+        <Stack.Screen name="Profile" component={ProfileView} options={{}} />
 
         {/* <Stack.Screen 
           name="Profile" 
@@ -169,7 +169,7 @@ const ProfileStackScreen = () => {
         />
       </>) : (<>
         {/* // guest view: log in page */}
-        <Stack.Screen name="LogIn" component={LogInView} options={{ title: "Sign In", animation: "none" }} />
+        <Stack.Screen name="LogIn" component={LogInView} options={{ animation: "none" }} />
       
         {/* // authenticated, but hasn't been registered yet */}
         <Stack.Screen name="Register" component={RegisterView} options={{ title: "Sign Up" }} />
