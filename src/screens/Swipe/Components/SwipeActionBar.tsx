@@ -34,7 +34,7 @@ const SwipeActionBar: React.FC<Props> = ({ onPass, onInfo, onLike }) => {
           onPass();
         }}
       >
-        <Text style={styles.actionIconText}>✕</Text>
+        <Text style={styles.actionIconText}>✖</Text>
       </TouchableOpacity>
 
       {/* INFO = middle "i" */}
@@ -78,7 +78,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   pass: { backgroundColor: PASS_COLOR },
-  info: { backgroundColor: "#444" },
+  info: { backgroundColor: "#a2a2a2ff" },
   like: { backgroundColor: LIKE_COLOR },
   actionIconText: {
     color: "#000",

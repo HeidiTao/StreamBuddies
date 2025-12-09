@@ -2,7 +2,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import type { MediaType } from "../useExploreSwiper";
 import FilterButton, { MediaFilters } from "./FilterButton";
 
@@ -31,106 +30,92 @@ const MediaToggleBar: React.FC<Props> = ({
   onFiltersChange,
 }) => {
   return (
-    <View style={styles.gradientWrapper}>
-      <LinearGradient
-        colors={["#e8d6f0", "#d5e8f7"]}
-        style={StyleSheet.absoluteFill}
-      />
-
-      <View style={styles.wrapper}>
-        {/* TOP: Movies / Shows toggle */}
-        <View style={styles.toggleRow}>
-          <View style={styles.toggleContainer}>
-            <TouchableOpacity
+    <View style={styles.wrapper}>
+      {/* TOP: Movies / Shows toggle */}
+      <View style={styles.toggleRow}>
+        <View style={styles.toggleContainer}>
+          <TouchableOpacity
+            style={[
+              styles.toggleButton,
+              mediaType === "movie" && styles.active,
+            ]}
+            onPress={() => onChange("movie")}
+          >
+            <Text
               style={[
-                styles.toggleButton,
-                mediaType === "movie" && styles.active,
+                styles.toggleText,
+                mediaType === "movie" && styles.activeText,
               ]}
-              onPress={() => onChange("movie")}
             >
-              <Text
-                style={[
-                  styles.toggleText,
-                  mediaType === "movie" && styles.activeText,
-                ]}
-              >
-                Movies
-              </Text>
-            </TouchableOpacity>
+              Movies
+            </Text>
+          </TouchableOpacity>
 
-            <TouchableOpacity
+          <TouchableOpacity
+            style={[
+              styles.toggleButton,
+              mediaType === "tv" && styles.active,
+            ]}
+            onPress={() => onChange("tv")}
+          >
+            <Text
               style={[
-                styles.toggleButton,
-                mediaType === "tv" && styles.active,
+                styles.toggleText,
+                mediaType === "tv" && styles.activeText,
               ]}
-              onPress={() => onChange("tv")}
             >
-              <Text
-                style={[
-                  styles.toggleText,
-                  mediaType === "tv" && styles.activeText,
-                ]}
-              >
-                Shows
-              </Text>
-            </TouchableOpacity>
-          </View>
+              Shows
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* BOTTOM: Filter | center | Refresh */}
+      <View style={styles.bottomRow}>
+        <View style={styles.leftFilterContainer}>
+          <FilterButton value={filters} onChange={onFiltersChange} />
         </View>
 
-        {/* BOTTOM: Filter | center | Refresh */}
-        <View style={styles.bottomRow}>
-          <View style={styles.leftFilterContainer}>
-            <FilterButton value={filters} onChange={onFiltersChange} />
-          </View>
+        {bottomLabel && onBottomPress && (
+          <TouchableOpacity
+            style={styles.bottomMainButton}
+            onPress={onBottomPress}
+          >
+            <Text style={styles.bottomMainText}>{bottomLabel}</Text>
+          </TouchableOpacity>
+        )}
 
-          {bottomLabel && onBottomPress && (
-            <TouchableOpacity
-              style={styles.bottomMainButton}
-              onPress={onBottomPress}
-            >
-              <Text style={styles.bottomMainText}>{bottomLabel}</Text>
-            </TouchableOpacity>
-          )}
-
-          {rightLabel && onRightPress && (
-            <TouchableOpacity
-              style={styles.refreshButton}
-              onPress={onRightPress}
-            >
-              <Ionicons
-                name="refresh"
-                size={16}
-                color="#8B7BC4"
-                style={{ marginRight: 4 }}
-              />
-              <Text style={styles.refreshText}>{rightLabel}</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        {rightLabel && onRightPress && (
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={onRightPress}
+          >
+            <Ionicons
+              name="refresh"
+              size={18}
+              color="#8B7BC4"
+              style={{ marginRight: 4 }}
+            />
+            <Text style={styles.refreshText}>{rightLabel}</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  // ADDED wrapper to apply gradient background
-  gradientWrapper: {
-    flex: 1,
-    width: "100%",
-  },
-
   wrapper: {
     width: "100%",
-    paddingBottom: 10,
+    paddingTop: 10,
   },
   
-  // ---- your styles unchanged below ----
   toggleRow: {
     flexDirection: "row",
     paddingHorizontal: 16,
-    paddingTop: 10,
+    paddingTop: 0,
     justifyContent: "center",
-    marginBottom: 8,
+    marginBottom: 12,
   },
 
   toggleContainer: {
@@ -141,10 +126,10 @@ const styles = StyleSheet.create({
   },
 
   toggleButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 28,
+    paddingVertical: 14,
+    paddingHorizontal: 36,
     borderRadius: 20,
-    minWidth: 100,
+    minWidth: 120,
     alignItems: "center",
   },
 
@@ -175,6 +160,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 16,
+    marginTop: 4,
   },
 
   leftFilterContainer: {
@@ -183,8 +169,8 @@ const styles = StyleSheet.create({
   },
 
   bottomMainButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
     backgroundColor: "rgba(255, 255, 255, 0.5)",
     borderRadius: 20,
     alignSelf: "center",
@@ -196,7 +182,7 @@ const styles = StyleSheet.create({
   },
 
   bottomMainText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "600",
     color: "#8B7BC4",
   },
@@ -205,8 +191,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "rgba(255, 255, 255, 0.5)",
-    paddingVertical: 10,
-    paddingHorizontal: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 20,
     position: "absolute",
     right: 16,
@@ -218,7 +204,7 @@ const styles = StyleSheet.create({
   },
 
   refreshText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "600",
     color: "#8B7BC4",
   },

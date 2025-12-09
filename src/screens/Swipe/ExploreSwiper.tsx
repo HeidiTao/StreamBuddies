@@ -379,6 +379,7 @@ const ExploreSwiper: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: { 
+    backgroundColor: "transparent",
     flex: 1,
   },
 
@@ -387,7 +388,7 @@ const styles = StyleSheet.create({
   },
 
   headerContent: {
-    paddingTop: 10,
+    paddingTop: 0,
     paddingBottom: 10,
   },
 
@@ -400,7 +401,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#f7e7ffff",
   },
   centerInner: {
     flex: 1,

@@ -5,19 +5,24 @@ const styles = StyleSheet.create({
   button: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F4F4F4",
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 12,
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 1,
   },
   buttonActive: {
     backgroundColor: "#CFEAFD",
   },
   buttonText: {
     marginLeft: 6,
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: "600",
-    color: "#1c1c1c",
+    color: "#8B7BC4",
   },
 
   modalRoot: {
