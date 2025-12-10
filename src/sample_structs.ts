@@ -104,25 +104,28 @@ export interface WatchlistItemDoc {
 
 // ---------- Groups ----------
 
+// In sample_structs.ts
 export interface GroupDoc {
   id?: string;
   name: string;
-  code?: string;
   description?: string;
-  created_by: ID;                    // userId
-  created_at: TimestampMs;
-  updated_at: TimestampMs;
-  member_count?: number;             // enforce <= 10 via server
-  currently_watching?: {
-    tmdb_id: number;
-    title: string;
-    poster_path: string;
-  }[];
-  finished?: {
-    tmdb_id: number;
-    title: string;
-    poster_path: string;
-  }[];
+  created_by: string;
+  member_ids: string[];
+  code?: string;
+  member_count?: number;
+  currently_watching?: Array<{ tmdb_id: number; title: string; poster_path: string }>;
+  finished?: Array<{ tmdb_id: number; title: string; poster_path: string }>;
+  comments?: Array<{
+    id: string;
+    user_id: string;
+    user_name: string;
+    text: string;
+    movie_id?: number;
+    movie_title?: string;
+    timestamp: number;
+  }>;
+  created_at?: number;
+  updated_at?: number;
 }
 
 export interface GroupMemberDoc {

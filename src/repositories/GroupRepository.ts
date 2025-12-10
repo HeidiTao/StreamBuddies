@@ -1,78 +1,145 @@
-import { collection, onSnapshot, query, where, getDocs, deleteDoc, doc } from 'firebase/firestore';
+// GroupRepository.ts - Add userId to group creation
+import {
+  collection,
+  onSnapshot,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  Timestamp,
+  query,
+  where,
+  getDocs,
+  getDoc,
+} from 'firebase/firestore';
 import { db } from '../../config/firebase';
-import { GroupDoc } from '../sample_structs';
+import { GroupDoc, UserDoc } from '../sample_structs';
 
+export class GroupRepository {
+  private collectionName = 'groups';
 
-import { addDoc } from 'firebase/firestore';
-
-function generateRandomCode(length = 6) {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    for (let i = 0; i < length; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-}
-
-class GroupRepository {
-    subscribe(callback: (groups: GroupDoc[]) => void) {
-        // Create a query for all groups
-        const q = query(collection(db, 'groups'));
-        // Set up real-time listener
-        const unsubscribe = onSnapshot(q, (querySnapshot) => {
-            const groups: GroupDoc[] = [];
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                groups.push({
-                    id: doc.id,
-                    name: data.name,
-                    description: data.description,
-                    created_by: data.created_by,
-                    created_at: data.created_at,
-                    updated_at: data.updated_at,
-                    member_count: data.member_count,
-                    code: data.code
-                } as GroupDoc);
-            });
-            callback(groups);
+  // Subscribe to groups for a specific user
+  subscribeToUserGroups(userId: string, callback: (groups: GroupDoc[]) => void): () => void {
+    const groupsCollection = collection(db, this.collectionName);
+    const q = query(groupsCollection, where('member_ids', 'array-contains', userId));
+    
+    return onSnapshot(q, (querySnapshot) => {
+      const groups: GroupDoc[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        groups.push({
+          id: doc.id,
+          name: data.name,
+          description: data.description,
+          created_by: data.created_by,
+          member_ids: data.member_ids,
+          member_count: data.member_count,
+          code: data.code,
+          currently_watching: data.currently_watching,
+          finished: data.finished,
+          created_at: data.created_at,
+          updated_at: data.updated_at,
         });
-        return unsubscribe;
-    }
+      });
+      callback(groups);
+    });
+  }
 
-    async createGroup(group: GroupDoc) {
-        try {
-            // generate a unique code and ensure no repeats
-            let code = generateRandomCode();
-            const maxAttempts = 10;
-            let attempts = 0;
-            while (attempts < maxAttempts) {
-                const q = query(collection(db, 'groups'), where('code', '==', code));
-                const snap = await getDocs(q);
-                if (snap.empty) break; // unique
-                code = generateRandomCode();
-                attempts += 1;
-            }
-            // attach code to group and save
-            const groupToSave = { ...group, code };
-            const docRef = await addDoc(collection(db, 'groups'), groupToSave);
-            console.log('Group created with ID:', docRef.id, 'code:', code);
-            // return the saved group including id and generated code so callers can navigate/display immediately
-            return { id: docRef.id, ...groupToSave } as GroupDoc;
-        } catch (error) {
-            console.error('Error creating group in Firebase:', error);
-            throw error;
-        }
-    }
+  async createGroup(userId: string, groupData: Omit<GroupDoc, 'id'>): Promise<GroupDoc> {
+    const groupsCollection = collection(db, this.collectionName);
+    
+    // Generate a 6-character code
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    
+    const newGroup = {
+      ...groupData,
+      created_by: userId,
+      member_ids: [userId], // Creator is automatically a member
+      code: code,
+      created_at: Timestamp.fromDate(new Date()),
+      updated_at: Timestamp.fromDate(new Date()),
+    };
+    
+    const docRef = await addDoc(groupsCollection, newGroup);
+    return { ...newGroup, id: docRef.id, created_at: Date.now(), updated_at: Date.now() };
+  }
 
-    async deleteGroup(groupId: string) {
-        try {
-            await deleteDoc(doc(db, 'groups', groupId));
-            console.log('Group deleted:', groupId);
-        } catch (error) {
-            console.error('Error deleting group:', error);
-            throw error;
-        }
+  async deleteGroup(groupId: string): Promise<void> {
+    const groupDoc = doc(db, this.collectionName, groupId);
+    await deleteDoc(groupDoc);
+  }
+
+  async joinGroup(code: string, userId: string): Promise<GroupDoc | null> {
+    const groupsCollection = collection(db, this.collectionName);
+    const q = query(groupsCollection, where('code', '==', code.toUpperCase()));
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) return null;
+    
+    const groupDoc = snapshot.docs[0];
+    const groupRef = doc(db, this.collectionName, groupDoc.id);
+    const data = groupDoc.data();
+    
+    // Add user to member_ids if not already there
+    if (!data.member_ids?.includes(userId)) {
+      await updateDoc(groupRef, {
+        member_ids: [...(data.member_ids || []), userId],
+        member_count: (data.member_count || 0) + 1,
+        updated_at: Timestamp.fromDate(new Date()),
+      });
     }
+    
+    return { ...data, id: groupDoc.id } as GroupDoc;
+  }
+
+  // Fetch a group with all its member details
+  async getGroupWithMembers(groupId: string): Promise<{ group: GroupDoc; members: UserDoc[] } | null> {
+    const groupDoc = doc(db, this.collectionName, groupId);
+    const groupSnap = await getDoc(groupDoc);
+    
+    if (!groupSnap.exists()) return null;
+    
+    const groupData = groupSnap.data();
+    const group: GroupDoc = {
+      id: groupSnap.id,
+      name: groupData.name,
+      description: groupData.description,
+      created_by: groupData.created_by,
+      member_ids: groupData.member_ids,
+      member_count: groupData.member_count,
+      code: groupData.code,
+      currently_watching: groupData.currently_watching,
+      finished: groupData.finished,
+      created_at: groupData.created_at,
+      updated_at: groupData.updated_at,
+    };
+    
+    // Fetch all member details
+    const members: UserDoc[] = [];
+    if (groupData.member_ids && groupData.member_ids.length > 0) {
+      const usersCollection = collection(db, 'users');
+      for (const memberId of groupData.member_ids) {
+        const userDocRef = doc(usersCollection, memberId);
+        const userSnap = await getDoc(userDocRef);
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          members.push({
+            id: userSnap.id,
+            user_name: userData.user_name,
+            phone_number: userData.phone_number,
+            birthday: userData.birthday,
+            join_date: userData.join_date?.toDate(),
+            streaming_services: userData.streaming_services,
+            profile_pic: userData.profile_pic,
+            created_at: userData.created_at?.toDate(),
+            updated_at: userData.updated_at?.toDate(),
+          });
+        }
+      }
+    }
+    
+    return { group, members };
+  }
 }
 
 export const groupRepository = new GroupRepository();
