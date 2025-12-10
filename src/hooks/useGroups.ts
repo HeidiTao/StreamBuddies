@@ -1,21 +1,28 @@
-import { useState, useEffect } from 'react';
+// hooks/useGroups.ts
+import { useEffect, useState } from 'react';
 import { GroupDoc } from '../sample_structs';
 import { groupRepository } from '../repositories/GroupRepository';
+import { useAuth } from './useAuth';
 
 export const useGroups = () => {
-    const [groups, setGroups] = useState<GroupDoc[]>([]);
-    const [groupsLoading, setGroupsLoading] = useState(true);
+  const { authUser } = useAuth();
+  const [groups, setGroups] = useState<GroupDoc[]>([]);
+  const [groupsLoading, setGroupsLoading] = useState(true);
 
-    useEffect(() => {
-        // Subscribe to group updates from Firestore
-        const unsubscribe = groupRepository.subscribe((updatedGroups) => {
-            setGroups(updatedGroups);
-            setGroupsLoading(false);
-        });
-        
-        // Cleanup subscription on unmount
-        return () => unsubscribe();
-    }, []);
+  useEffect(() => {
+    if (!authUser) {
+      setGroups([]);
+      setGroupsLoading(false);
+      return;
+    }
 
-    return { groups, groupsLoading };
+    const unsubscribe = groupRepository.subscribeToUserGroups(authUser.uid, (updatedGroups) => {
+      setGroups(updatedGroups);
+      setGroupsLoading(false);
+    });
+
+    return unsubscribe;
+  }, [authUser]);
+
+  return { groups, groupsLoading };
 };

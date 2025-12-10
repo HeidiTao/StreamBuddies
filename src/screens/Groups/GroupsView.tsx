@@ -1,13 +1,15 @@
 import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
-import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../../navigation/types";
-import React, { useState } from "react";
-import { GroupDoc } from "../../sample_structs";
+import React, { useState, useEffect } from "react";
+import { GroupDoc, UserDoc } from "../../sample_structs";
 import { useGroups } from "../../hooks/useGroups";
+import { useAuth } from "../../hooks/useAuth";
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { groupRepository } from '../../repositories/GroupRepository';
+import { collection, doc, getDoc } from 'firebase/firestore';
+import { db } from '../../../config/firebase';
 
 type GroupsViewNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Groups'>;
 
@@ -16,8 +18,90 @@ interface Props {
 }
 
 const GroupsView: React.FC<Props> = ({ navigation }) => {
+  const { authUser } = useAuth();
   const { groups, groupsLoading } = useGroups();
   const [removeMode, setRemoveMode] = useState(false);
+  const [groupMembers, setGroupMembers] = useState<{ [groupId: string]: string[] }>({});
+
+  // Fetch member initials for all groups
+  useEffect(() => {
+    const fetchAllGroupMembers = async () => {
+      const membersMap: { [groupId: string]: string[] } = {};
+      
+      for (const group of groups) {
+        if (group.id && group.member_ids) {
+          const initials: string[] = [];
+          
+          // Fetch each member's details
+          for (const memberId of group.member_ids.slice(0, 5)) { // Limit to 5 for display
+            try {
+              const userDoc = doc(db, 'users', memberId);
+              const userSnap = await getDoc(userDoc);
+              
+              if (userSnap.exists()) {
+                const userData = userSnap.data();
+                const initial = userData.user_name?.charAt(0).toUpperCase() || '?';
+                initials.push(initial);
+              }
+            } catch (error) {
+              console.error('Error fetching user:', error);
+              initials.push('?');
+            }
+          }
+          
+          membersMap[group.id] = initials;
+        }
+      }
+      
+      setGroupMembers(membersMap);
+    };
+    
+    if (groups.length > 0) {
+      fetchAllGroupMembers();
+    }
+  }, [groups]);
+
+  if (!authUser) {
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F5F0F8' }}>
+        <LinearGradient
+          colors={['#E8D5F0', '#D5E8F8']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={{
+            paddingTop: 60,
+            paddingBottom: 20,
+            paddingHorizontal: 20,
+          }}
+        >
+          <Text style={{ fontSize: 28, fontWeight: '700', color: '#000' }}>My Groups</Text>
+        </LinearGradient>
+
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 }}>
+          <Ionicons name="people-outline" size={80} color="#C0B0D0" style={{ marginBottom: 20 }} />
+          <Text style={{ fontSize: 20, fontWeight: '600', color: '#8070A0', textAlign: 'center', marginBottom: 12 }}>
+            Please sign in to create groups!
+          </Text>
+          <Text style={{ fontSize: 14, color: '#B0A0C0', textAlign: 'center', marginBottom: 24 }}>
+            Sign in to start creating groups and watching with friends
+          </Text>
+          <TouchableOpacity
+            style={{
+              backgroundColor: '#C8BEF0',
+              paddingVertical: 14,
+              paddingHorizontal: 32,
+              borderRadius: 25,
+            }}
+            onPress={() => {
+              navigation.getParent()?.navigate('ProfileTab');
+            }}
+          >
+            <Text style={{ color: '#fff', fontWeight: '600', fontSize: 16 }}>Sign In</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   const handleLeaveGroup = async (group: GroupDoc) => {
     Alert.alert(
@@ -50,22 +134,13 @@ const GroupsView: React.FC<Props> = ({ navigation }) => {
     setRemoveMode(!removeMode);
   };
 
-  // Mock member initials for demo
-  const mockInitials = [
-    ['G', 'M', 'Q', 'S', 'W'],
-    ['R', 'I', 'H'],
-    ['J', 'K', 'L', 'M', 'N'],
-    ['E', 'F', 'G'],
-    ['P', 'O'],
-    ['U', 'V', 'W', 'X', 'Y'],
-    ['A', 'B', 'C', 'D'],
-  ];
-
   const renderGroupCircle = (name: string, onPress: () => void, memberInitials?: string[], isAction?: boolean, group?: GroupDoc) => {
-    // In remove mode, only show regular groups (not Join/New Group buttons)
     if (removeMode && isAction) {
       return null;
     }
+
+    // Get real member initials if available
+    const initials = group?.id ? (groupMembers[group.id] || ['?', '?']) : memberInitials || ['?', '?'];
 
     return (
       <View style={{ alignItems: 'center', marginBottom: 30, width: '45%' }}>
@@ -84,7 +159,7 @@ const GroupsView: React.FC<Props> = ({ navigation }) => {
                 <Text style={{ fontSize: 60, color: '#C0B0D0', fontWeight: '300' }}>+</Text>
               ) : (
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', padding: 15 }}>
-                  {(memberInitials || ['A', 'B']).slice(0, 5).map((initial, idx) => (
+                  {initials.slice(0, 5).map((initial, idx) => (
                     <View
                       key={idx}
                       style={{
@@ -106,7 +181,6 @@ const GroupsView: React.FC<Props> = ({ navigation }) => {
               )}
             </View>
             
-            {/* Small X Badge in top-right corner */}
             {removeMode && !isAction && (
               <View style={{
                 position: 'absolute',
@@ -154,7 +228,6 @@ const GroupsView: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#F5F0F8' }}>
-      {/* Gradient Header */}
       <LinearGradient
         colors={['#E8D5F0', '#D5E8F8']}
         start={{ x: 0, y: 0 }}
@@ -187,7 +260,6 @@ const GroupsView: React.FC<Props> = ({ navigation }) => {
         </View>
       </LinearGradient>
 
-      {/* Remove Mode Banner */}
       {removeMode && (
         <View style={{
           backgroundColor: '#FFE5E5',
@@ -207,7 +279,6 @@ const GroupsView: React.FC<Props> = ({ navigation }) => {
         </View>
       )}
 
-      {/* Content */}
       <ScrollView
         contentContainerStyle={{
           paddingHorizontal: 20,
@@ -219,21 +290,17 @@ const GroupsView: React.FC<Props> = ({ navigation }) => {
           flexWrap: 'wrap',
           justifyContent: 'space-between',
         }}>
-          {/* Join Group */}
           {renderGroupCircle('Join Group', () => navigation.navigate('JoinGroup'), undefined, true)}
-          
-          {/* New Group */}
           {renderGroupCircle('New Group', () => navigation.navigate('NewGroup'), undefined, true)}
           
-          {/* Existing Groups */}
-          {groups.map((group, idx) => (
+          {groups.map((group) => (
             <React.Fragment key={group.id}>
               {renderGroupCircle(
                 group.name,
                 () => removeMode 
                   ? handleLeaveGroup(group)
                   : navigation.navigate('GroupDetail', { groupId: group }),
-                mockInitials[idx % mockInitials.length],
+                undefined,
                 false,
                 group
               )}
