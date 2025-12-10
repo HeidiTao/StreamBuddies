@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -33,6 +33,7 @@ const SearchScreen = () => {
   const navigation = useNavigation();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const debounceTimeout = useRef<NodeJS.Timeout>();
   const [loading, setLoading] = useState(false);
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [showingServiceResults, setShowingServiceResults] = useState(false);
@@ -43,7 +44,7 @@ const SearchScreen = () => {
   const streamingServices: StreamingService[] = [
     { id: '1', name: 'Netflix', color: '#FFB3BA', providerId: '8' },
     { id: '2', name: 'Hulu', color: '#BAFFC9', providerId: '15' },
-    { id: '3', name: 'HboMax', color: '#D4BAFF', providerId: '384' },
+    { id: '3', name: 'HBO Max', color: '#D4BAFF', providerId: '384' },
   ];
 
   const searchMoviesAndTV = async (query: string) => {
@@ -148,6 +149,17 @@ const SearchScreen = () => {
   const handleSearch = () => {
     searchMoviesAndTV(searchQuery);
   };
+
+  // also allow search to happen while users type
+  useEffect(() => {
+    if (!searchQuery) return;
+
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    debounceTimeout.current = setTimeout(() => {
+      searchMoviesAndTV(searchQuery);
+    }, 300)
+  }, [searchQuery])
+
 
   const handleServicePress = (service: StreamingService) => {
     (navigation as any).navigate('ServiceResults', {

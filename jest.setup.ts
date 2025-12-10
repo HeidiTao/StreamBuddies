@@ -51,3 +51,7 @@ jest.mock("firebase/firestore", () => ({
   updateDoc: jest.fn(),
   deleteDoc: jest.fn(),
 }));
+
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);

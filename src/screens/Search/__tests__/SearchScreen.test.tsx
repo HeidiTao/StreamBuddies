@@ -17,8 +17,9 @@ jest.mock('firebase/firestore', () => ({
 }));
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
-import SearchScreen from '../SearchScreen';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react-native';
+// import SearchScreen from '../SearchScreen';
+import SearchScreen from '../SearchView';
 
 jest.mock('expo-linear-gradient', () => ({ LinearGradient: ({ children }: any) => children }));
 jest.mock('@expo/vector-icons', () => ({ Ionicons: 'Ionicons' }));
@@ -74,20 +75,24 @@ describe('SearchScreen', () => {
     global.fetch = jest.fn((url) => {
       if (url.includes('/search/multi')) {
         return Promise.resolve({
+          ok: true,
           json: () => Promise.resolve(mockSearchResults),
         });
       }
       if (url.includes('/movie/') || url.includes('/tv/')) {
         return Promise.resolve({
+          ok: true,
           json: () => Promise.resolve(mockMovieDetails),
         });
       }
       if (url.includes('/discover/movie')) {
         return Promise.resolve({
+          ok: true,
           json: () => Promise.resolve(mockSearchResults),
         });
       }
       return Promise.resolve({
+        ok: true,
         json: () => Promise.resolve({}),
       });
     }) as jest.Mock;
@@ -96,7 +101,7 @@ describe('SearchScreen', () => {
   describe('Rendering', () => {
     it('should render search header and input', () => {
       render(<SearchScreen />);
-      expect(screen.getByPlaceholderText('Search movies and TV shows')).toBeTruthy();
+      expect(screen.getByPlaceholderText('Search...')).toBeTruthy();
     });
 
     it('should render streaming service buttons', () => {
@@ -115,7 +120,7 @@ describe('SearchScreen', () => {
   describe('Search Functionality', () => {
     it('should update search query when text is entered', () => {
       render(<SearchScreen />);
-      const searchInput = screen.getByPlaceholderText('Search movies and TV shows');
+      const searchInput = screen.getByPlaceholderText('Search...');
       
       fireEvent.changeText(searchInput, 'Fight Club');
       expect(searchInput.props.value).toBe('Fight Club');
@@ -124,7 +129,7 @@ describe('SearchScreen', () => {
     it('should perform search when search button is pressed', async () => {
       render(<SearchScreen />);
       
-      const searchInput = screen.getByPlaceholderText('Search movies and TV shows');
+      const searchInput = screen.getByPlaceholderText('Search...');
       fireEvent.changeText(searchInput, 'Fight Club');
       
       // Simulate pressing enter or search button
@@ -140,11 +145,16 @@ describe('SearchScreen', () => {
 
     it('should display search results', async () => {
       render(<SearchScreen />);
-      
-      const searchInput = screen.getByPlaceholderText('Search movies and TV shows');
+      jest.useFakeTimers();
+
+      const searchInput = screen.getByPlaceholderText('Search...');
       fireEvent.changeText(searchInput, 'Fight Club');
       fireEvent(searchInput, 'onSubmitEditing');
       
+      act(() => {
+        jest.advanceTimersByTime(350);
+      });
+
       await waitFor(() => {
         expect(screen.getByText('Fight Club')).toBeTruthy();
         expect(screen.getByText('Forrest Gump')).toBeTruthy();
@@ -160,7 +170,7 @@ describe('SearchScreen', () => {
       
       render(<SearchScreen />);
       
-      const searchInput = screen.getByPlaceholderText('Search movies and TV shows');
+      const searchInput = screen.getByPlaceholderText('Search...');
       fireEvent.changeText(searchInput, 'Fight Club');
       fireEvent(searchInput, 'onSubmitEditing');
       
@@ -177,7 +187,7 @@ describe('SearchScreen', () => {
       
       render(<SearchScreen />);
       
-      const searchInput = screen.getByPlaceholderText('Search movies and TV shows');
+      const searchInput = screen.getByPlaceholderText('Search...');
       fireEvent.changeText(searchInput, 'Nonexistent Movie');
       fireEvent(searchInput, 'onSubmitEditing');
       
@@ -192,7 +202,7 @@ describe('SearchScreen', () => {
       
       render(<SearchScreen />);
       
-      const searchInput = screen.getByPlaceholderText('Search movies and TV shows');
+      const searchInput = screen.getByPlaceholderText('Search...');
       fireEvent.changeText(searchInput, 'Fight Club');
       fireEvent(searchInput, 'onSubmitEditing');
       
@@ -246,7 +256,7 @@ describe('SearchScreen', () => {
     it('should navigate to MovieDetailSearch when result is pressed', async () => {
       render(<SearchScreen />);
       
-      const searchInput = screen.getByPlaceholderText('Search movies and TV shows');
+      const searchInput = screen.getByPlaceholderText('Search...');
       fireEvent.changeText(searchInput, 'Fight Club');
       fireEvent(searchInput, 'onSubmitEditing');
       
@@ -270,7 +280,7 @@ describe('SearchScreen', () => {
     it('should fetch movie details before navigating', async () => {
       render(<SearchScreen />);
       
-      const searchInput = screen.getByPlaceholderText('Search movies and TV shows');
+      const searchInput = screen.getByPlaceholderText('Search...');
       fireEvent.changeText(searchInput, 'Fight Club');
       fireEvent(searchInput, 'onSubmitEditing');
       
@@ -292,7 +302,7 @@ describe('SearchScreen', () => {
     it('should pass genres and rating to detail screen', async () => {
       render(<SearchScreen />);
       
-      const searchInput = screen.getByPlaceholderText('Search movies and TV shows');
+      const searchInput = screen.getByPlaceholderText('Search...');
       fireEvent.changeText(searchInput, 'Fight Club');
       fireEvent(searchInput, 'onSubmitEditing');
       
@@ -318,7 +328,7 @@ describe('SearchScreen', () => {
     it('should clear search when empty string is entered', () => {
       render(<SearchScreen />);
       
-      const searchInput = screen.getByPlaceholderText('Search movies and TV shows');
+      const searchInput = screen.getByPlaceholderText('Search...');
       fireEvent.changeText(searchInput, 'Fight Club');
       fireEvent.changeText(searchInput, '');
       
@@ -328,7 +338,7 @@ describe('SearchScreen', () => {
     it('should handle special characters in search', async () => {
       render(<SearchScreen />);
       
-      const searchInput = screen.getByPlaceholderText('Search movies and TV shows');
+      const searchInput = screen.getByPlaceholderText('Search...');
       fireEvent.changeText(searchInput, "Ocean's 11");
       fireEvent(searchInput, 'onSubmitEditing');
       
@@ -344,7 +354,7 @@ describe('SearchScreen', () => {
       render(<SearchScreen />);
       
       const longQuery = 'A'.repeat(200);
-      const searchInput = screen.getByPlaceholderText('Search movies and TV shows');
+      const searchInput = screen.getByPlaceholderText('Search...');
       fireEvent.changeText(searchInput, longQuery);
       fireEvent(searchInput, 'onSubmitEditing');
       
@@ -358,7 +368,7 @@ describe('SearchScreen', () => {
     it('should use TMDB Bearer token when available', async () => {
       render(<SearchScreen />);
       
-      const searchInput = screen.getByPlaceholderText('Search movies and TV shows');
+      const searchInput = screen.getByPlaceholderText('Search...');
       fireEvent.changeText(searchInput, 'Fight Club');
       fireEvent(searchInput, 'onSubmitEditing');
       
@@ -380,7 +390,7 @@ describe('SearchScreen', () => {
       
       render(<SearchScreen />);
       
-      const searchInput = screen.getByPlaceholderText('Search movies and TV shows');
+      const searchInput = screen.getByPlaceholderText('Search...');
       fireEvent.changeText(searchInput, 'Fight Club');
       fireEvent(searchInput, 'onSubmitEditing');
       
@@ -418,7 +428,7 @@ describe('SearchScreen', () => {
       
       render(<SearchScreen />);
       
-      const searchInput = screen.getByPlaceholderText('Search movies and TV shows');
+      const searchInput = screen.getByPlaceholderText('Search...');
       fireEvent.changeText(searchInput, 'Game of Thrones');
       fireEvent(searchInput, 'onSubmitEditing');
       
@@ -444,10 +454,15 @@ describe('SearchScreen', () => {
       ) as jest.Mock;
       
       render(<SearchScreen />);
+      jest.useFakeTimers();
       
-      const searchInput = screen.getByPlaceholderText('Search movies and TV shows');
+      const searchInput = screen.getByPlaceholderText('Search...');
       fireEvent.changeText(searchInput, 'Fight Club');
       fireEvent(searchInput, 'onSubmitEditing');
+      
+      act(() => {
+        jest.advanceTimersByTime(350); // make sure debounce fires
+      });
       
       await waitFor(() => {
         expect(screen.getByText('Fight Club')).toBeTruthy();
@@ -470,10 +485,15 @@ describe('SearchScreen', () => {
       ) as jest.Mock;
       
       render(<SearchScreen />);
+      jest.useFakeTimers();
       
-      const searchInput = screen.getByPlaceholderText('Search movies and TV shows');
+      const searchInput = screen.getByPlaceholderText('Search...');
       fireEvent.changeText(searchInput, 'Fight Club');
       fireEvent(searchInput, 'onSubmitEditing');
+      
+      act(() => {
+        jest.advanceTimersByTime(350); // make sure debounce fires
+      });
       
       await waitFor(() => {
         expect(screen.getByText('Fight Club')).toBeTruthy();
@@ -483,7 +503,7 @@ describe('SearchScreen', () => {
     it('should handle rapid consecutive searches', async () => {
       render(<SearchScreen />);
       
-      const searchInput = screen.getByPlaceholderText('Search movies and TV shows');
+      const searchInput = screen.getByPlaceholderText('Search...');
       
       fireEvent.changeText(searchInput, 'Fight');
       fireEvent(searchInput, 'onSubmitEditing');
@@ -505,7 +525,7 @@ describe('SearchScreen', () => {
       render(<SearchScreen />);
       
       // Enter search query
-      const searchInput = screen.getByPlaceholderText('Search movies and TV shows');
+      const searchInput = screen.getByPlaceholderText('Search...');
       fireEvent.changeText(searchInput, 'Fight Club');
       
       // Submit search
@@ -534,7 +554,7 @@ describe('SearchScreen', () => {
       render(<SearchScreen />);
       
       // First do a search
-      const searchInput = screen.getByPlaceholderText('Search movies and TV shows');
+      const searchInput = screen.getByPlaceholderText('Search...');
       fireEvent.changeText(searchInput, 'Fight Club');
       fireEvent(searchInput, 'onSubmitEditing');
       

@@ -3,6 +3,7 @@ import { useUserProfile } from '../useUserProfile';
 import { UserDoc, StreamingServiceKey } from '../../sample_structs';
 import { userRepository } from '../../repositories/UserRepository';
 import { getFirestore } from 'firebase/firestore';
+import { initializeAuth } from 'firebase/auth';
 
 jest.mock('../../repositories/UserRepository'); // points Jest to the manual mock
 
@@ -13,7 +14,9 @@ jest.mock('firebase/firestore', () => ({
     getFirestore: jest.fn(() => ({})),
 }));
 jest.mock('firebase/auth', () => ({
-    getAuth: jest.fn(() => ({})),
+    // getAuth: jest.fn(() => ({})),
+    initializeAuth: jest.fn(),
+    getReactNativePersistence: jest.fn(),
 }));
 
 describe("useUserProfile", () => {

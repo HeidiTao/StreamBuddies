@@ -1,19 +1,16 @@
 import { useAuth } from "../useAuth";
-import { onAuthStateChanged } from "firebase/auth";
+import { initializeAuth, onAuthStateChanged } from "firebase/auth";
 import { renderHook, act } from "@testing-library/react-native";
 
 jest.mock('firebase/app', () => ({
     initializeApp: jest.fn(() => ({})),
 }));
 
-// jest.mock("firebase/auth", () => {
-//     return {
-//         onAuthStateChanged: jest.fn(),
-//     };
-// });
 jest.mock('firebase/auth', () => ({
-    getAuth: jest.fn(() => ({})),
+    // getAuth: jest.fn(() => ({})),
     onAuthStateChanged: jest.fn(),
+    initializeAuth: jest.fn(),
+    getReactNativePersistence: jest.fn(),
 }));
 // jest.mock("../../config/firebase", () => ({
 //     auth: { mocked: true }
