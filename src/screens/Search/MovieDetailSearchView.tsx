@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useWatchStats } from '../contexts/WatchStatsContext';
+import { useAuth } from '../../hooks/useAuth';
+import { useGroups } from '../../hooks/useGroups';
+import { groupRepository } from '../../repositories/GroupRepository';
+import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { db } from '../../../config/firebase';
 
 interface WatchedByUser {
   id: string;
@@ -38,8 +43,11 @@ const MovieDetailSearchView = () => {
   const navigation = useNavigation();
   const route = useRoute<RouteProp<{ params: RouteParams }, 'params'>>();
   const { logWatchTime } = useWatchStats();
+  const { authUser } = useAuth();
+  const { groups } = useGroups();
   
   const [showWatchTimeModal, setShowWatchTimeModal] = useState(false);
+  const [showGroupModal, setShowGroupModal] = useState(false);
   const [hours, setHours] = useState('');
   const [minutes, setMinutes] = useState('');
   
@@ -75,6 +83,37 @@ const MovieDetailSearchView = () => {
       return `${hours}h`;
     } else {
       return `${mins}m`;
+    }
+  };
+  
+  const handleAddToGroup = async (groupId: string) => {
+    if (!groupId) return;
+    
+    try {
+      const groupRef = doc(db, 'groups', groupId);
+      
+      // Create the movie object to add
+      const movieToAdd = {
+        tmdb_id: movieId,
+        title: title,
+        poster_path: poster_path || '',
+      };
+      
+      // Add to currently_watching array using arrayUnion to avoid duplicates
+      await updateDoc(groupRef, {
+        currently_watching: arrayUnion(movieToAdd)
+      });
+      
+      Alert.alert(
+        'Added to Group!',
+        `"${title}" has been added to your group's Currently Watching list.`,
+        [{ text: 'OK' }]
+      );
+      
+      setShowGroupModal(false);
+    } catch (error) {
+      console.error('Error adding to group:', error);
+      Alert.alert('Error', 'Failed to add to group. Please try again.');
     }
   };
   
@@ -246,16 +285,16 @@ const MovieDetailSearchView = () => {
           </View>
         )}
 
-        {/* Share Icon */}
-        <TouchableOpacity style={styles.shareButton}>
-          <Ionicons name="share-social-outline" size={24} color="#666" />
-        </TouchableOpacity>
-
-        {/* Description */}
+        {/* Description - MOVED HERE */}
         <View style={styles.descriptionContainer}>
           <Text style={styles.descriptionTitle}>Description:</Text>
           <Text style={styles.descriptionText}>{overview}</Text>
         </View>
+
+        {/* Share Icon
+        <TouchableOpacity style={styles.shareButton}>
+          <Ionicons name="share-social-outline" size={24} color="#666" />
+        </TouchableOpacity> */}
 
         {/* Watched By Section */}
         <View style={styles.watchedByContainer}>
@@ -272,6 +311,17 @@ const MovieDetailSearchView = () => {
           </View>
         </View>
 
+        {/* Add to Group Button */}
+        {authUser && groups.length > 0 && (
+          <TouchableOpacity
+            style={styles.addToGroupButton}
+            onPress={() => setShowGroupModal(true)}
+          >
+            <Ionicons name="people-outline" size={24} color="#fff" />
+            <Text style={styles.addToGroupText}>Add to Group</Text>
+          </TouchableOpacity>
+        )}
+
         {/* Log Watch Time Button */}
         <TouchableOpacity
           style={styles.logWatchTimeButton}
@@ -284,6 +334,46 @@ const MovieDetailSearchView = () => {
         {/* Add some bottom padding for tab bar */}
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Group Selection Modal */}
+      <Modal
+        visible={showGroupModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowGroupModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Add to Group</Text>
+            <Text style={styles.modalSubtitle}>
+              Select a group to add "{title}" to:
+            </Text>
+
+            <ScrollView style={styles.groupList}>
+              {groups.map((group) => (
+                <TouchableOpacity
+                  key={group.id}
+                  style={styles.groupItem}
+                  onPress={() => handleAddToGroup(group.id!)}
+                >
+                  <View style={styles.groupIconContainer}>
+                    <Ionicons name="people" size={24} color="#bcbcff" />
+                  </View>
+                  <Text style={styles.groupName}>{group.name}</Text>
+                  <Ionicons name="chevron-forward" size={20} color="#999" />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={[styles.modalButton, styles.cancelButton]}
+              onPress={() => setShowGroupModal(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Watch Time Modal */}
       <Modal
@@ -452,7 +542,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     flexWrap: 'wrap',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   genreTag: {
     backgroundColor: '#E8F5E9',
@@ -467,19 +557,14 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#2E7D32',
   },
-  shareButton: {
-    alignSelf: 'flex-end',
-    padding: 8,
-    marginBottom: 16,
-  },
   descriptionContainer: {
-    marginBottom: 24,
+    marginBottom: 16,
   },
   descriptionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#999',
-    marginBottom: 8,
+    marginBottom: 6,
     textAlign: 'center',
   },
   descriptionText: {
@@ -488,8 +573,12 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
   },
+  shareButton: {
+    alignSelf: 'flex-end',
+    marginBottom: 8,
+  },
   watchedByContainer: {
-    marginBottom: 24,
+    marginBottom: 10,
   },
   watchedByTitle: {
     fontSize: 16,
@@ -521,6 +610,31 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
   },
+  addToGroupButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#bcbcff',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    marginTop: 8,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  addToGroupText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    marginLeft: 8,
+  },
   logWatchTimeButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -529,7 +643,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 12,
-    marginTop: 8,
     marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: {
@@ -558,6 +671,7 @@ const styles = StyleSheet.create({
     padding: 24,
     width: '85%',
     maxWidth: 400,
+    maxHeight: '80%',
   },
   modalTitle: {
     fontSize: 22,
@@ -571,6 +685,35 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     marginBottom: 24,
+  },
+  groupList: {
+    maxHeight: 300,
+    marginBottom: 16,
+  },
+  groupItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#f7f7ff',
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e3e3f7',
+  },
+  groupIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#e3e3f7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  groupName: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4b4b7a',
   },
   timeInputContainer: {
     flexDirection: 'row',

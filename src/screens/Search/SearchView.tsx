@@ -44,7 +44,8 @@ const SearchScreen = () => {
   const streamingServices: StreamingService[] = [
     { id: '1', name: 'Netflix', color: '#FFB3BA', providerId: '8' },
     { id: '2', name: 'Hulu', color: '#BAFFC9', providerId: '15' },
-    { id: '3', name: 'HBO Max', color: '#D4BAFF', providerId: '384' },
+    { id: '3', name: 'Max', color: '#D4BAFF', providerId: '1899' },
+    { id: '4', name: 'Apple TV+', color: '#E0E0E0', providerId: '350' },
   ];
 
   const searchMoviesAndTV = async (query: string) => {
