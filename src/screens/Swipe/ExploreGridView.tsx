@@ -1,5 +1,12 @@
 // src/screens/Swipe/ExploreGridView.tsx
-import React, { useCallback, useEffect, useRef, useState } from "react";
+
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+} from "react";
 import {
   View,
   Text,
@@ -13,13 +20,20 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../../navigation/types";
-import type { MediaType } from "./useExploreSwiper";
+
+import { useAuth } from "../../hooks/useAuth";
+import { useUserProfile } from "../../hooks/useUserProfile";
+import NotLoggedInGate from "./Components/NotLoggedInGate";
+
 import MediaToggleBar from "./Components/MediaToggleBar";
 import {
   MediaFilters,
   GENRE_LABEL_TO_TMDB_IDS,
   STREAMING_NAME_TO_ID,
 } from "./Components/FilterButton";
+import type { MediaType } from "./useExploreSwiper";
+import { userServicesToProviderIds } from "./streamerProviderUtils";
+import styles from "../../styles/SwipeStyles/exploreGridStyles";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "Trending">;
 
@@ -33,10 +47,23 @@ type MediaItem = {
 
 const TMDB_DISCOVER_MOVIE_URL = "https://api.themoviedb.org/3/discover/movie";
 const TMDB_DISCOVER_TV_URL = "https://api.themoviedb.org/3/discover/tv";
-const STREAMING_PROVIDERS = "8|9|337|15|384|350|387";
+const STREAMING_PROVIDERS = "8|9|337|15|384|350|387"; // default aggregate
 
 const ExploreGridView: React.FC = () => {
   const navigation = useNavigation<Nav>();
+  const { authUser } = useAuth();
+  const { profile } = useUserProfile(authUser?.uid);
+
+  const userStreamingServices = profile?.streaming_services ?? null;
+
+  // ✅ memoize provider IDs so the reference is stable
+  const userProviderIds = useMemo(
+    () => userServicesToProviderIds(userStreamingServices),
+    [userStreamingServices]
+  );
+
+  // allow user to continue as guest
+  const [continueAsGuest, setContinueAsGuest] = useState(false);
 
   const [mediaType, setMediaType] = useState<MediaType>("movie");
   const [items, setItems] = useState<MediaItem[]>([]);
@@ -46,7 +73,6 @@ const ExploreGridView: React.FC = () => {
   const [totalPages, setTotalPages] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // 🔎 Filters (same shape as ExploreSwiper / FilterButton)
   const [filters, setFilters] = useState<MediaFilters>({
     genre: "Any",
     year: "Any",
@@ -71,19 +97,35 @@ const ExploreGridView: React.FC = () => {
         with_watch_monetization_types: "flatrate|ads|free",
       });
 
-      // --- Streaming provider ---
+      const hasUserProviders = userProviderIds.length > 0;
+
+      // 🔹 Streaming provider logic with user services
       if (activeFilters.streaming === "Any") {
-        params.set("with_watch_providers", STREAMING_PROVIDERS);
-      } else {
-        const providerId = STREAMING_NAME_TO_ID[activeFilters.streaming];
-        if (providerId) {
-          params.set("with_watch_providers", String(providerId));
+        if (hasUserProviders) {
+          params.set("with_watch_providers", userProviderIds.join("|"));
         } else {
           params.set("with_watch_providers", STREAMING_PROVIDERS);
         }
+      } else {
+        const selectedId = STREAMING_NAME_TO_ID[activeFilters.streaming];
+
+        if (selectedId) {
+          if (!hasUserProviders || userProviderIds.includes(selectedId)) {
+            params.set("with_watch_providers", String(selectedId));
+          } else {
+            // picked a provider they don't have → no results
+            params.set("with_watch_providers", "-1");
+          }
+        } else {
+          // unknown label; safe fallback
+          params.set(
+            "with_watch_providers",
+            hasUserProviders ? userProviderIds.join("|") : STREAMING_PROVIDERS
+          );
+        }
       }
 
-      // --- Year / decade ---
+      // 🔹 Year / decade
       if (activeFilters.year !== "Any") {
         const y = activeFilters.year;
         if (/^\d{4}$/.test(y)) {
@@ -117,7 +159,7 @@ const ExploreGridView: React.FC = () => {
         }
       }
 
-      // --- Genre ---
+      // 🔹 Genre
       if (activeFilters.genre !== "Any") {
         const key = activeFilters.genre.toLowerCase();
         const ids = GENRE_LABEL_TO_TMDB_IDS[key];
@@ -126,7 +168,7 @@ const ExploreGridView: React.FC = () => {
         }
       }
 
-      // --- Stars (score buckets) ---
+      // 🔹 Stars (vote buckets)
       if (activeFilters.stars !== "Any") {
         let minVote = 0;
         if (activeFilters.stars === "4+ stars") minVote = 8.0;
@@ -145,7 +187,7 @@ const ExploreGridView: React.FC = () => {
       if (tmdbToken) return `${baseUrl}?${params.toString()}`;
       return `${baseUrl}?${params.toString()}&api_key=${tmdbApiKey ?? ""}`;
     },
-    [tmdbApiKey, tmdbToken]
+    [tmdbApiKey, tmdbToken, userProviderIds] // ✅ userProviderIds is memoized now
   );
 
   const fetchPage = useCallback(
@@ -197,7 +239,6 @@ const ExploreGridView: React.FC = () => {
     [buildDiscoverUrl, filters, tmdbToken]
   );
 
-  // Initial load + re-fetch when media type or filters change
   useEffect(() => {
     fetchPage(mediaType, 1, false);
   }, [fetchPage, mediaType, filters]);
@@ -223,7 +264,6 @@ const ExploreGridView: React.FC = () => {
     });
   };
 
-  // 🔁 Refresh cycles to the NEXT page (or wraps back to 1)
   const handleRefreshPress = async () => {
     if (refreshing) return;
     try {
@@ -235,7 +275,6 @@ const ExploreGridView: React.FC = () => {
       }
 
       await fetchPage(mediaType, nextPage, false);
-
       listRef.current?.scrollToOffset({ offset: 0, animated: true });
     } finally {
       setRefreshing(false);
@@ -268,6 +307,19 @@ const ExploreGridView: React.FC = () => {
     </View>
   );
 
+  const exploreEnabled = !!authUser || continueAsGuest;
+
+  if (!exploreEnabled) {
+    return (
+      <NotLoggedInGate
+        onContinueGuest={() => setContinueAsGuest(true)}
+        onLogin={() => {
+          navigation.getParent()?.navigate("ProfileTab" as never);
+        }}
+      />
+    );
+  }
+
   if (loading && items.length === 0) {
     return (
       <View style={styles.center}>
@@ -279,7 +331,6 @@ const ExploreGridView: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Gradient Header matching Groups page - extends to top */}
       <LinearGradient
         colors={["#e8d6f0", "#d5e8f7"]}
         start={{ x: 0, y: 0 }}
@@ -291,7 +342,7 @@ const ExploreGridView: React.FC = () => {
             mediaType={mediaType}
             onChange={handleChangeMediaType}
             bottomLabel="Swipe"
-            onBottomPress={() => navigation.goBack()} // back to swiper
+            onBottomPress={() => navigation.goBack()}
             rightLabel={refreshing ? "Refreshing…" : "Refresh"}
             onRightPress={handleRefreshPress}
             filters={filters}
@@ -300,7 +351,6 @@ const ExploreGridView: React.FC = () => {
         </View>
       </LinearGradient>
 
-      {/* Grid of posters */}
       <FlatList
         ref={listRef}
         data={items}
@@ -322,78 +372,5 @@ const ExploreGridView: React.FC = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-  },
-
-  gradientHeader: {
-    marginTop: 0,
-  },
-
-  headerContent: {
-    paddingTop: 10,
-    paddingBottom: 10,
-  },
-
-  center: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#f5f5f5",
-  },
-  loadingText: {
-    marginTop: 8,
-    color: "#8B7BC4",
-    fontSize: 14,
-  },
-
-  gridContent: {
-    paddingHorizontal: 8,
-    paddingBottom: 16,
-  },
-  gridRow: {
-    justifyContent: "space-between",
-  },
-  posterContainer: {
-    flex: 1 / 3,
-    margin: 4,
-  },
-  posterWrapper: {
-    aspectRatio: 2 / 3,
-    borderRadius: 10,
-    overflow: "hidden",
-    backgroundColor: "#D5CEEB",
-    marginBottom: 6,
-  },
-  posterImage: {
-    width: "100%",
-    height: "100%",
-  },
-  posterPlaceholder: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 4,
-    backgroundColor: "#D5CEEB",
-  },
-  posterPlaceholderText: {
-    fontSize: 10,
-    textAlign: "center",
-    color: "#8B7BC4",
-  },
-  titleText: {
-    fontSize: 11,
-    color: "#333",
-    textAlign: "center",
-    paddingHorizontal: 2,
-  },
-
-  loadingMore: {
-    paddingVertical: 12,
-  },
-});
 
 export default ExploreGridView;

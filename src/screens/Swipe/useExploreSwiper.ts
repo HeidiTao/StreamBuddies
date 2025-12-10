@@ -1,5 +1,5 @@
 // src/screens/Swipe/useExploreSwiper.ts
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { Animated } from "react-native";
 import Swiper from "react-native-deck-swiper";
 import {
@@ -7,6 +7,7 @@ import {
   GENRE_LABEL_TO_TMDB_IDS,
   STREAMING_NAME_TO_ID,
 } from "./Components/FilterButton";
+import { userServicesToProviderIds } from "./streamerProviderUtils";
 
 export type MediaType = "movie" | "tv";
 
@@ -18,16 +19,15 @@ export type MediaItem = {
   release_date?: string;
   first_air_date?: string;
 
-  // For filtering:
   genre_ids?: number[];
-  vote_average?: number; // 0–10 TMDB score
-  maturityRating?: string; // "PG-13", "TV-MA", etc.
-  streamingProviders?: string[]; // ["Netflix", "Hulu", ...]
+  vote_average?: number;
+  maturityRating?: string;
+  streamingProviders?: string[];
 };
 
 const TMDB_DISCOVER_MOVIE_URL = "https://api.themoviedb.org/3/discover/movie";
 const TMDB_DISCOVER_TV_URL = "https://api.themoviedb.org/3/discover/tv";
-const STREAMING_PROVIDERS = "8|9|337|15|384|350|387"; // Netflix, Prime, etc.
+const STREAMING_PROVIDERS = "8|9|337|15|384|350|387"; // fallback aggregate
 
 const tmdbToken = process.env.EXPO_PUBLIC_TMDB_READ_TOKEN;
 const tmdbApiKey = process.env.EXPO_PUBLIC_TMDB_API_KEY;
@@ -91,7 +91,8 @@ async function fetchExtrasForItem(
 function discoverUrl(
   mediaType: MediaType,
   page: number,
-  filters: MediaFilters
+  filters: MediaFilters,
+  userProviderIds: number[]
 ): string {
   const params = new URLSearchParams({
     language: "en-US",
@@ -102,19 +103,38 @@ function discoverUrl(
     with_watch_monetization_types: "flatrate|ads|free",
   });
 
-  // Streaming provider
+  const hasUserProviders = userProviderIds.length > 0;
+
+  // 🔹 Streaming provider logic
   if (filters.streaming === "Any") {
-    params.set("with_watch_providers", STREAMING_PROVIDERS);
-  } else {
-    const providerId = STREAMING_NAME_TO_ID[filters.streaming];
-    if (providerId) {
-      params.set("with_watch_providers", String(providerId));
+    if (hasUserProviders) {
+      // logged-in user: only their subscriptions
+      params.set("with_watch_providers", userProviderIds.join("|"));
     } else {
+      // guest / no subscriptions stored → default bundle
       params.set("with_watch_providers", STREAMING_PROVIDERS);
+    }
+  } else {
+    // user explicitly chose a streaming filter from the UI
+    const selectedId = STREAMING_NAME_TO_ID[filters.streaming];
+
+    if (selectedId) {
+      if (!hasUserProviders || userProviderIds.includes(selectedId)) {
+        params.set("with_watch_providers", String(selectedId));
+      } else {
+        // filter for a service they don't subscribe to → no matches
+        params.set("with_watch_providers", "-1");
+      }
+    } else {
+      // unknown label, fallback
+      params.set(
+        "with_watch_providers",
+        hasUserProviders ? userProviderIds.join("|") : STREAMING_PROVIDERS
+      );
     }
   }
 
-  // Year / decade
+  // 🔹 Year / decade
   if (filters.year !== "Any") {
     const y = filters.year;
     if (/^\d{4}$/.test(y)) {
@@ -148,7 +168,7 @@ function discoverUrl(
     }
   }
 
-  // Genre
+  // 🔹 Genre
   if (filters.genre !== "Any") {
     const key = filters.genre.toLowerCase();
     const ids = GENRE_LABEL_TO_TMDB_IDS[key];
@@ -157,7 +177,7 @@ function discoverUrl(
     }
   }
 
-  // Stars (score buckets)
+  // 🔹 Stars / rating buckets
   if (filters.stars !== "Any") {
     let minVote = 0;
     if (filters.stars === "4+ stars") minVote = 8.0;
@@ -197,7 +217,8 @@ type UseExploreSwiperReturn = {
 };
 
 export default function useExploreSwiper(
-  filters: MediaFilters
+  filters: MediaFilters,
+  userStreamingServices?: string[] | null
 ): UseExploreSwiperReturn {
   const [deck, setDeck] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -213,6 +234,14 @@ export default function useExploreSwiper(
   const bgValue = useRef(new Animated.Value(0)).current;
   const upValue = useRef(new Animated.Value(0)).current;
 
+  // ✅ memoize provider IDs
+  const userProviderIds = useMemo(
+    () => userServicesToProviderIds(userStreamingServices ?? undefined),
+    [userStreamingServices]
+  );
+  // console.log("🔥 useExploreSwiper → user streaming services:", userStreamingServices);
+  // console.log("🔥 useExploreSwiper → mapped TMDB provider IDs:", userProviderIds);
+
   type FetchMode = "initial" | "refresh" | "next";
 
   const fetchPage = async (
@@ -220,7 +249,7 @@ export default function useExploreSwiper(
     pageToLoad: number,
     mode: FetchMode
   ) => {
-    const url = discoverUrl(type, pageToLoad, filters);
+    const url = discoverUrl(type, pageToLoad, filters, userProviderIds);
 
     try {
       if (mode === "next") setIsLoadingMore(true);
@@ -252,8 +281,9 @@ export default function useExploreSwiper(
         })
       );
 
-      // Client-side maturity filter (uses extras)
       let finalDeck = mappedWithExtras;
+
+      // client-side maturity filter
       if (filters.maturity !== "Any") {
         const wanted = filters.maturity.toUpperCase();
         finalDeck = finalDeck.filter((m) => {
@@ -282,8 +312,7 @@ export default function useExploreSwiper(
   };
 
   const loadNextDeckPage = async () => {
-    const nextPage =
-      totalPages && page < totalPages ? page + 1 : 1;
+    const nextPage = totalPages && page < totalPages ? page + 1 : 1;
     await fetchPage(mediaType, nextPage, "next");
   };
 
@@ -293,9 +322,9 @@ export default function useExploreSwiper(
   };
 
   useEffect(() => {
+    // whenever mediaType, filters, or userProviderIds change, reload from page 1
     fetchPage(mediaType, 1, "initial");
-    // filters is included so new filters trigger a fresh fetch
-  }, [mediaType, filters]);
+  }, [mediaType, filters, userProviderIds]);
 
   return {
     deck,
