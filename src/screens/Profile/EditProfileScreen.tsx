@@ -8,6 +8,7 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const EditProfileScreen = () => {
   const [email, setEmail] = useState('abc@gmail.com');
@@ -35,10 +36,16 @@ const EditProfileScreen = () => {
 
   return (
     <ScrollView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
+
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={['#E8D5F0', '#D5E8F8']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.headerGradient}
+      >
         <Text style={styles.headerTitle}>Profile Page</Text>
-      </View>
+      </LinearGradient>
 
       {/* User Info */}
       <View style={styles.userSection}>
@@ -47,7 +54,9 @@ const EditProfileScreen = () => {
             <Ionicons name="person" size={40} color="#999" />
           </View>
         </View>
+
         <Text style={styles.userName}>Isabelle Aris</Text>
+
         <TouchableOpacity style={styles.menuButton}>
           <Ionicons name="ellipsis-horizontal" size={24} color="#000" />
         </TouchableOpacity>
@@ -126,15 +135,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  header: {
-    padding: 16,
+
+  /* NEW Gradient Header */
+  headerGradient: {
+    paddingVertical: 50,
+    paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#eee',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 22,
+    paddingTop: 10,
+    fontWeight: '700',
+    textAlign: 'center',
+    color: '#000',
   },
+
   userSection: {
     alignItems: 'center',
     paddingVertical: 24,
@@ -162,6 +178,7 @@ const styles = StyleSheet.create({
     right: 16,
     top: 24,
   },
+
   fieldContainer: {
     paddingHorizontal: 16,
     paddingVertical: 16,
@@ -186,6 +203,7 @@ const styles = StyleSheet.create({
   editIcon: {
     padding: 4,
   },
+
   servicesSection: {
     paddingHorizontal: 16,
     paddingVertical: 16,
@@ -203,6 +221,7 @@ const styles = StyleSheet.create({
   addButton: {
     padding: 4,
   },
+
   servicesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
