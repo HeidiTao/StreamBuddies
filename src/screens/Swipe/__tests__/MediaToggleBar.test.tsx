@@ -1,7 +1,7 @@
 // src/screens/Swipe/Components/__tests__/MediaToggleBar.test.tsx
 import React from "react";
 import { render, fireEvent } from "@testing-library/react-native";
-import MediaToggleBar from "../MediaToggleBar";
+import MediaToggleBar from "../Components/MediaToggleBar";
 
 // Mock FilterButton so we don't bring its complexity in here
 jest.mock("../FilterButton", () => {

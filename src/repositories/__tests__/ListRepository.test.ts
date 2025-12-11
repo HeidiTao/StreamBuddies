@@ -6,8 +6,7 @@ import {
     addDoc,
     updateDoc,
     deleteDoc,
-    doc,
-    Timestamp
+    doc
 } from 'firebase/firestore';
 
 jest.mock("../../../config/firebase", () => ({
@@ -21,6 +20,8 @@ jest.mock('firebase/firestore', () => ({
     updateDoc: jest.fn(),
     deleteDoc: jest.fn(),
     doc: jest.fn(),
+    where: jest.fn(),
+    query: jest.fn(),
     Timestamp: {
         fromDate: jest.fn((d) => d),
     },
@@ -37,6 +38,7 @@ describe('ListRepository', () => {
             forEach: (cb: any) => {
                 cb({ id: '1', data: () => ({ name: 'List 1', visibility: 'private', description: '', created_at: { toDate: () => 0 }, updated_at: { toDate: () => 0 }, item_count: 0, preview_covers: [], items: [] }) });
                 cb({ id: '2', data: () => ({ name: 'List 2', visibility: 'shared', description: '', created_at: { toDate: () => 0 }, updated_at: { toDate: () => 0 }, item_count: 0, preview_covers: [], items: [] }) });
+                cb({ id: '3', data: () => ({ name: 'List 3', visibility: 'shared', description: '', created_at: { toDate: () => 0 }, updated_at: { toDate: () => 0 }, item_count: 0 }) });
             }
         };
 
@@ -46,11 +48,12 @@ describe('ListRepository', () => {
             return jest.fn(); // unsubscribe
         });
 
-        listRepository.subscribe(fakeCallback);
+        listRepository.subscribe('fake-user-id', fakeCallback);
 
         expect(fakeCallback).toHaveBeenCalledWith([
             expect.objectContaining({ id: '1', name: 'List 1', visibility: 'private' }),
             expect.objectContaining({ id: '2', name: 'List 2', visibility: 'shared' }),
+            expect.objectContaining({ id: '3', name: 'List 3', visibility: 'shared' }),
         ]);
     });
 
@@ -58,7 +61,7 @@ describe('ListRepository', () => {
         (collection as jest.Mock).mockReturnValue('col-ref');
         (addDoc as jest.Mock).mockResolvedValue(undefined);
 
-        const newList = { name: 'New', owner_user_id: '1', visibility: 'private', description: 'desc', group_id: '0', created_at: 0, updated_at: 0, item_count: 0, preview_covers: [], items: [] };
+        const newList = { name: 'New', owner_user_id: '1', visibility: 'private' as WatchlistVisibility, description: 'desc', group_id: '0', created_at: 0, updated_at: 0, item_count: 0, preview_covers: [], items: [] };
 
         await listRepository.add(newList);
 
@@ -115,10 +118,16 @@ describe('ListRepository', () => {
         (doc as jest.Mock).mockReturnValue('doc-ref');
         (updateDoc as jest.Mock).mockResolvedValue(undefined);
 
-        const list = { id: 'abc', name: 'List', visibility:'private' as WatchlistVisibility, owner_user_id: '1', description: '', group_id: '0', created_at: 0, updated_at: 0, item_count: 0, preview_covers: [], items: [] };
+        const list1 = { id: 'abc', name: 'List', visibility:'private' as WatchlistVisibility, owner_user_id: '1', description: '', group_id: '0', created_at: 0, updated_at: 0, item_count: 0, preview_covers: [], items: [] };
 
-        await listRepository.toggleVisibility(list);
+        await listRepository.toggleVisibility(list1);
 
         expect(updateDoc).toHaveBeenCalledWith('doc-ref', { visibility: 'shared' });
+
+        const list2 = { id: 'abc', name: 'List', visibility:'shared' as WatchlistVisibility, owner_user_id: '1', description: '', group_id: '0', created_at: 0, updated_at: 0, item_count: 0, preview_covers: [], items: [] };
+
+        await listRepository.toggleVisibility(list2);
+
+        expect(updateDoc).toHaveBeenCalledWith('doc-ref', { visibility: 'private' });
     });
 });
