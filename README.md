@@ -82,6 +82,10 @@ Jest is a testing framework that integrates very well with React Native apps. It
 
 ## Notes on Technical Issues
 - Watchstats are currently local data. It is not linked to each user in our database.
+- Profile edits is not linked with database yet.
 
 ## Future Development
-- 
+- Continue to improve user flow (e.g., adding confirmation messages for adds and deletes)
+- Allow users to add movies or shows to watchlists on create
+- Direct link to streaming platforms - when users want to play a movie, they can simply click a link or button on our application that would open the corresponding streaming platform on their device
+  
