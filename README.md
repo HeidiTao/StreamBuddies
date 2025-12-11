@@ -35,7 +35,7 @@ In the era of streaming, the simple question “What should we watch?” has bec
 
 **To test the authentication feature**: We use Firebase Auth for user authentication. To prevent sending SMS texts to real phone numbers, Firebase Auth provides testing numbers + verification code combinations that can be set up in the Firebase console. For simulating the feature, you can enter the test number in the phone number field, complete the reCAPTCHA verification, then fill in the corresponding verification code on the following page. The correct combination will lead you to the profile page or register page, depending on whether there already exists a user with that number.
 
-Below are the available combinations to test creating new accounts (i.e., these users do not exist before 2025/12/11 9am). However, if they are tested by a grader, then using the same combination will directly lead to the profile page instead of the registration page. 
+Below are the available combinations to test **creating new accounts** (i.e., these users do not exist before 2025/12/11 9am). However, if they are tested by a grader, then using the same combination will directly lead to the profile page instead of the registration page. 
 |  Phone number |  Verification Code |
 |:--------------|:------------------:|
 | +1 0001110001 | 010101 |
@@ -43,7 +43,7 @@ Below are the available combinations to test creating new accounts (i.e., these 
 | +1 0003330003 | 030303 |
 | +1 0004440004 | 040404 | 
 
-Below are combinations for accounts that are already registered as users in our app:
+Below are combinations for accounts that are **already registered as users** in our app. You can use these pairs to directly log in:
 |  Phone number |  Verification Code |
 |:--------------|:------------------:|
 | +1 999-999-9999 | 999999 |
