@@ -16,6 +16,12 @@ jest.mock('firebase/firestore', () => ({
   Timestamp: { fromDate: (date: Date) => date },
 }));
 
+jest.mock('firebase/auth', () => ({
+  onAuthStateChanged: jest.fn(),
+  initializeAuth: jest.fn(),
+  getReactNativePersistence: jest.fn(),
+}));
+
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
 import GroupDetailView from '../GroupDetailView';

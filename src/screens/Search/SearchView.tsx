@@ -101,51 +101,6 @@ const SearchScreen = () => {
     }
   };
 
-  const searchByProvider = async (providerId: string) => {
-    setLoading(true);
-
-    try {
-      const params = new URLSearchParams({
-        language: 'en-US',
-        sort_by: 'popularity.desc',
-        page: '1',
-        include_adult: 'false',
-        watch_region: 'US',
-        with_watch_monetization_types: 'flatrate|ads|free',
-        with_watch_providers: providerId,
-      });
-
-      const url = tmdbToken
-        ? `https://api.themoviedb.org/3/discover/movie?${params.toString()}`
-        : `https://api.themoviedb.org/3/discover/movie?${params.toString()}&api_key=${tmdbApiKey ?? ''}`;
-
-      const headers: HeadersInit = tmdbToken
-        ? { accept: 'application/json', Authorization: `Bearer ${tmdbToken}` }
-        : { accept: 'application/json' };
-
-      const res = await fetch(url, { headers });
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(`TMDB discover failed: ${res.status}`);
-
-      const rawResults: any[] = Array.isArray(data.results) ? data.results : [];
-      const results: SearchResult[] = rawResults.map((item) => ({
-        id: item.id,
-        title: item.title ?? item.name ?? 'Untitled',
-        overview: item.overview ?? '',
-        poster_path: item.poster_path ?? null,
-        release_date: item.release_date ?? item.first_air_date,
-        media_type: 'movie',
-      }));
-
-      setSearchResults(results);
-    } catch (error) {
-      console.error('❌ Error fetching by provider:', error);
-      setSearchResults([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSearch = () => {
     searchMoviesAndTV(searchQuery);
