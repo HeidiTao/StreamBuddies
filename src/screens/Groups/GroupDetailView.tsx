@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../hooks/useAuth';
 import { doc, updateDoc, arrayUnion, onSnapshot, arrayRemove } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
+import { useWatchStats } from '../contexts/WatchStatsContext';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GroupDetail'>;
 
@@ -27,6 +28,7 @@ const streamingServiceColors: { [key: string]: string } = {
 export default function GroupDetailView({ route, navigation }: Props) {
   const initialGroup = route.params?.groupId;
   const { authUser } = useAuth();
+  const { logWatchTime } = useWatchStats();
 
   const [group, setGroup] = useState<GroupDoc | null>(initialGroup);
   
@@ -203,12 +205,49 @@ export default function GroupDetailView({ route, navigation }: Props) {
 
     try {
       const groupRef = doc(db, 'groups', group.id);
+
+      let movieDetails;
+      try {
+        movieDetails = await fetchTMDBDetails(movie.tmdb_id, 'tv').catch(() => 
+          fetchTMDBDetails(movie.tmdb_id, 'movie')
+        );
+      } catch (err) {
+        console.error('Error fetching movie details:', err);
+      }
       
       // Remove from currently_watching and add to finished
       await updateDoc(groupRef, {
         currently_watching: arrayRemove(movie),
         finished: arrayUnion(movie)
       });
+
+      if (movieDetails) {
+        let runtime = 0;
+        
+        if (movieDetails.runtime) {
+          runtime = movieDetails.runtime;
+        }
+        else if (movieDetails.episode_run_time && movieDetails.episode_run_time.length > 0) {
+          runtime = Math.round(
+            movieDetails.episode_run_time.reduce((a: number, b: number) => a + b, 0) / 
+            movieDetails.episode_run_time.length
+          );
+        }
+
+        const genres = movieDetails.genres?.map((g: any) => g.name) || [];
+        const mediaType = movieDetails.name ? 'tv' : 'movie';
+
+        if (runtime > 0) {
+          logWatchTime({
+            movieId: movie.tmdb_id,
+            title: movieDetails.name || movieDetails.title || movie.title,
+            minutesWatched: runtime,
+            timestamp: new Date().toISOString(),
+            genres: genres,
+            media_type: mediaType,
+          });
+        }
+      }
       
       setShowFinishedModal(false);
     } catch (error) {
