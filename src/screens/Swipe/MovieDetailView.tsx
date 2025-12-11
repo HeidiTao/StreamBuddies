@@ -1,5 +1,4 @@
-// src/screens/MovieDetailView.tsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
 import {
   View,
   Text,
@@ -8,14 +7,22 @@ import {
   ScrollView,
   Image,
   TouchableOpacity,
+  Modal,
+  TextInput,
+  Alert,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RouteProp } from "@react-navigation/native";
-import type { RootStackParamList } from "../navigation/types";
+import type { RootStackParamList } from "../../navigation/types";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import AddToListButton from "./Components/AddToListButton";
+import { useAuth } from "../../hooks/useAuth";
+import { useGroups } from "../../hooks/useGroups";
+import { doc, updateDoc, arrayUnion } from "firebase/firestore";
+import { db } from "../../../config/firebase";
+import { useWatchStats } from "../contexts/WatchStatsContext";
 
 type Nav = NativeStackNavigationProp<RootStackParamList, "MovieDetail">;
 type Route = RouteProp<RootStackParamList, "MovieDetail">;
@@ -83,10 +90,22 @@ const formatRuntime = (minutes: number | undefined): string | null => {
   return `${m}m`;
 };
 
+const formatVoteCount = (count: number) => {
+  if (count >= 1000000) {
+    return `${(count / 1000000).toFixed(1)}M`;
+  } else if (count >= 1000) {
+    return `${(count / 1000).toFixed(1)}K`;
+  }
+  return count.toString();
+};
+
 const MovieDetailView: React.FC = () => {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const { id, title, mediaType } = route.params;
+  const { authUser } = useAuth();
+  const { groups } = useGroups();
+  const { logWatchTime } = useWatchStats();
 
   const tmdbToken = process.env.EXPO_PUBLIC_TMDB_READ_TOKEN;
   const tmdbApiKey = process.env.EXPO_PUBLIC_TMDB_API_KEY;
@@ -98,27 +117,32 @@ const MovieDetailView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [movie, setMovie] = useState<MovieDetails | null>(null);
   const [providers, setProviders] = useState<string[]>([]);
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [showWatchTimeModal, setShowWatchTimeModal] = useState(false);
+  const [hours, setHours] = useState('');
+  const [minutes, setMinutes] = useState('');
+
+  // Store movie data in a ref to ensure we always have the current values
+  const movieDataRef = useRef({
+    movieId: id,
+    title: title,
+    poster_path: movie?.poster_path || null,
+  });
+
+  // Update ref when movie data changes
+  useEffect(() => {
+    movieDataRef.current = {
+      movieId: id,
+      title: movie?.title || movie?.name || title,
+      poster_path: movie?.poster_path || null,
+    };
+  }, [id, title, movie?.title, movie?.name, movie?.poster_path]);
 
   useEffect(() => {
     navigation.setOptions({
-      title: title ?? "Details",
-      headerBackTitleVisible: false,
-      headerLeft: () => (
-        <TouchableOpacity
-          onPress={() => {
-            if (navigation.canGoBack()) {
-              navigation.goBack();
-            } else {
-              navigation.navigate("Trending");
-            }
-          }}
-          style={{ paddingHorizontal: 8 }}
-        >
-          <Ionicons name="chevron-back" size={24} color="#000000ff" />
-        </TouchableOpacity>
-      ),
+      headerShown: false,
     });
-  }, [navigation, title]);
+  }, [navigation]);
 
   useEffect(() => {
     (async () => {
@@ -167,6 +191,134 @@ const MovieDetailView: React.FC = () => {
   );
 
   const thumb = posterUri(movie?.poster_path);
+
+  const handleAddToGroup = async (groupId: string) => {
+    if (!groupId) return;
+    
+    // Use ref to get the most current movie data
+    const currentMovie = movieDataRef.current;
+    
+    // Validate that we have the required data
+    if (!currentMovie.movieId || !currentMovie.title) {
+      console.error('Invalid movie data:', currentMovie);
+      Alert.alert('Error', 'Movie information is incomplete. Please try again.');
+      return;
+    }
+    
+    try {
+      const groupRef = doc(db, 'groups', groupId);
+      
+      // Create the movie object to add with proper typing AND media_type
+      const movieToAdd = {
+        tmdb_id: Number(currentMovie.movieId),
+        title: String(currentMovie.title).trim(),
+        poster_path: currentMovie.poster_path ? String(currentMovie.poster_path) : '',
+        media_type: mediaType || 'movie',
+      };
+      
+      console.log('Adding movie to group:', {
+        groupId,
+        movie: movieToAdd,
+        timestamp: new Date().toISOString()
+      });
+      
+      await updateDoc(groupRef, {
+        currently_watching: arrayUnion(movieToAdd)
+      });
+      
+      Alert.alert(
+        'Added to Group!',
+        `"${currentMovie.title}" has been added to your group's Currently Watching list.`,
+        [{ text: 'OK' }]
+      );
+      
+      setShowGroupModal(false);
+    } catch (error) {
+      console.error('Error adding to group:', error);
+      Alert.alert('Error', 'Failed to add to group. Please try again.');
+    }
+  };
+
+  const handleLogWatchTime = () => {
+    const hoursNum = parseInt(hours) || 0;
+    const minutesNum = parseInt(minutes) || 0;
+    
+    if (hoursNum === 0 && minutesNum === 0) {
+      Alert.alert('Invalid Input', 'Please enter at least some watch time.');
+      return;
+    }
+    
+    const totalMinutes = (hoursNum * 60) + minutesNum;
+    const runtimeMinutes = mediaType === "movie"
+      ? movie?.runtime ?? 0
+      : Array.isArray(movie?.episode_run_time) && movie.episode_run_time.length > 0
+      ? movie.episode_run_time[0]
+      : 0;
+    
+    if (runtimeMinutes > 0 && totalMinutes > runtimeMinutes) {
+      const runtimeFormatted = formatRuntime(runtimeMinutes);
+      
+      Alert.alert(
+        'Invalid Watch Time',
+        `You cannot log more time than the ${mediaType === 'movie' ? 'movie' : 'episode'}'s length.\n\nMaximum: ${runtimeFormatted}`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
+    logWatchTime({
+      movieId: id,
+      title: movie?.title || movie?.name || title,
+      minutesWatched: totalMinutes,
+      timestamp: new Date().toISOString(),
+      genres: genreList,
+      media_type: mediaType,
+    });
+    
+    Alert.alert(
+      'Watch Time Logged!',
+      `You watched ${hoursNum > 0 ? `${hoursNum}h ` : ''}${minutesNum}m of ${movie?.title || movie?.name || title}`,
+      [{ text: 'OK' }]
+    );
+    
+    setHours('');
+    setMinutes('');
+    setShowWatchTimeModal(false);
+  };
+
+  const handleLogWholeMovie = () => {
+    const runtimeMinutes = mediaType === "movie"
+      ? movie?.runtime ?? 0
+      : Array.isArray(movie?.episode_run_time) && movie.episode_run_time.length > 0
+      ? movie.episode_run_time[0]
+      : 0;
+
+    if (runtimeMinutes === 0) {
+      Alert.alert('Error', 'Runtime information not available for this title.');
+      return;
+    }
+
+    logWatchTime({
+      movieId: id,
+      title: movie?.title || movie?.name || title,
+      minutesWatched: runtimeMinutes,
+      timestamp: new Date().toISOString(),
+      genres: genreList,
+      media_type: mediaType,
+    });
+
+    const runtimeFormatted = formatRuntime(runtimeMinutes);
+    
+    Alert.alert(
+      'Watch Time Logged!',
+      `You watched the entire ${mediaType === 'movie' ? 'movie' : 'episode'}: ${runtimeFormatted}`,
+      [{ text: 'OK' }]
+    );
+    
+    setHours('');
+    setMinutes('');
+    setShowWatchTimeModal(false);
+  };
 
   if (loading || !movie) {
     return (
@@ -232,14 +384,36 @@ const MovieDetailView: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} bounces={false}>
         {/* Full-width gradient header with poster */}
         <LinearGradient
-          colors={["rgba(255,179,217,0.98)", "rgba(179,217,255,0.98)"]}
+          colors={["#FFB3D9", "#B3D9FF"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.headerGradient}
         >
+          {/* Back Button */}
+          <View style={styles.headerTop}>
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={() => {
+                if (navigation.canGoBack()) {
+                  navigation.goBack();
+                } else {
+                  navigation.navigate("Trending");
+                }
+              }}
+            >
+              <View style={styles.backButtonCircle}>
+                <Text style={styles.backButtonText}>Back</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Title */}
+          <Text style={styles.movieTitle}>{displayTitle}</Text>
+
+          {/* Poster */}
           {thumb ? (
             <Image
               source={{ uri: thumb }}
@@ -248,22 +422,14 @@ const MovieDetailView: React.FC = () => {
             />
           ) : (
             <View style={[styles.poster, styles.noPoster]}>
-              <Ionicons name="film-outline" size={64} color="#ccc" />
+              <Ionicons name="film-outline" size={80} color="#ccc" />
             </View>
           )}
         </LinearGradient>
 
         {/* Padded inner content below header */}
         <View style={styles.innerContent}>
-          {/* Title */}
-          <Text style={styles.title}>{displayTitle}</Text>
-
-          {/* Meta: maturity • year */}
-          <Text style={styles.metaLine}>
-            {maturityRating} • {year}
-          </Text>
-
-          {/* Rating row: yellow stars + numeric rating + votes */}
+          {/* Rating row: yellow stars */}
           <View style={styles.ratingRow}>
             <View style={styles.starsRow}>
               {Array.from({ length: 5 }).map((_, i) => (
@@ -276,14 +442,16 @@ const MovieDetailView: React.FC = () => {
                 />
               ))}
             </View>
-            <Text style={styles.ratingText}>{ratingLine}</Text>
           </View>
+
+          {/* Year */}
+          <Text style={styles.year}>{year}</Text>
 
           {/* Runtime with time icon */}
           {runtimeText && (
             <View style={styles.runtimeRow}>
               <Ionicons name="time-outline" size={16} color="#666" />
-              <Text style={styles.runtimeText}>{runtimeText}</Text>
+              <Text style={styles.runtimeTextStyle}>{runtimeText}{mediaType === 'tv' ? ' (per episode avg)' : ''}</Text>
             </View>
           )}
 
@@ -298,40 +466,197 @@ const MovieDetailView: React.FC = () => {
             </View>
           )}
 
+          {/* Description */}
+          <View style={styles.descriptionContainer}>
+            <Text style={styles.descriptionTitle}>Description:</Text>
+            <Text style={styles.descriptionText}>{movie.overview || "—"}</Text>
+          </View>
+
+          {/* Movie Info Section */}
+          <View style={styles.movieInfoContainer}>
+            {/* Certification (Rating) */}
+            {maturityRating && maturityRating !== 'NR' && (
+              <View style={styles.infoSection}>
+                <Text style={styles.infoLabel}>Rating:</Text>
+                <View style={styles.certificationBadge}>
+                  <Text style={styles.certificationText}>{maturityRating}</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Vote Count */}
+            {voteCount > 0 && (
+              <View style={styles.infoSection}>
+                <Text style={styles.infoLabel}>Votes:</Text>
+                <View style={styles.voteContainer}>
+                  <Ionicons name="people" size={16} color="#666" />
+                  <Text style={styles.voteText}>{formatVoteCount(voteCount)}</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Streaming Providers */}
+            {providers.length > 0 && (
+              <View style={styles.infoSection}>
+                <Text style={styles.infoLabel}>Available On:</Text>
+                <View style={styles.providersContainer}>
+                  {providers.map((provider, index) => (
+                    <Text key={index} style={styles.providerText}>
+                      {provider}
+                      {index < providers.length - 1 ? ', ' : ''}
+                    </Text>
+                  ))}
+                </View>
+              </View>
+            )}
+          </View>
+
           {/* Add to Watchlist */}
           <View style={{ marginTop: 10, marginBottom: 6 }}>
             <AddToListButton itemId={id} />
           </View>
 
-          {/* Original Language */}
-          <View style={styles.section}>
-            <View style={styles.bubble}>
-              <Text style={styles.bubbleText}>Original Language</Text>
-            </View>
-            <Text style={styles.value}>{displayLanguage}</Text>
-          </View>
+          {/* Add to Group Button */}
+          {authUser && groups.length > 0 && (
+            <TouchableOpacity
+              style={styles.addToGroupButton}
+              onPress={() => setShowGroupModal(true)}
+            >
+              <Ionicons name="people-outline" size={24} color="#fff" />
+              <Text style={styles.addToGroupText}>Add to Group</Text>
+            </TouchableOpacity>
+          )}
 
-          {/* Description */}
-          <View style={styles.section}>
-            <View style={styles.bubble}>
-              <Text style={styles.bubbleText}>Description</Text>
-            </View>
-            <Text style={styles.value}>{movie.overview || "—"}</Text>
-          </View>
-
-          {/* Streaming Services (US) */}
-          <View style={styles.section}>
-            <View style={styles.bubble}>
-              <Text style={styles.bubbleText}>Streaming Services (US)</Text>
-            </View>
-            <Text style={styles.value}>
-              {providers.length
-                ? providers.join(", ")
-                : "Not currently available to stream (flatrate) in US"}
-            </Text>
-          </View>
+          {/* Log Watch Time Button */}
+          <TouchableOpacity
+            style={styles.logWatchTimeButton}
+            onPress={() => setShowWatchTimeModal(true)}
+          >
+            <Ionicons name="time-outline" size={24} color="#fff" />
+            <Text style={styles.logWatchTimeText}>Log Watch Time</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Group Selection Modal */}
+      <Modal
+        visible={showGroupModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowGroupModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity
+              style={styles.modalBackButton}
+              onPress={() => setShowGroupModal(false)}
+            >
+              <Ionicons name="arrow-back" size={20} color="#666" />
+              <Text style={styles.modalBackButtonText}>Back</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.modalTitle}>Add to Group</Text>
+            <Text style={styles.modalSubtitle}>
+              Select a group to add "{displayTitle}" to:
+            </Text>
+
+            <ScrollView style={styles.groupList}>
+              {groups.map((group) => (
+                <TouchableOpacity
+                  key={group.id}
+                  style={styles.groupItem}
+                  onPress={() => handleAddToGroup(group.id!)}
+                >
+                  <View style={styles.groupIconContainer}>
+                    <Ionicons name="people" size={24} color="#bcbcff" />
+                  </View>
+                  <Text style={styles.groupName}>{group.name}</Text>
+                  <Ionicons name="chevron-forward" size={20} color="#999" />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Watch Time Modal */}
+      <Modal
+        visible={showWatchTimeModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowWatchTimeModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Log Watch Time</Text>
+            <Text style={styles.modalSubtitle}>
+              How long did you watch?
+              {runtimeText && (
+                <Text style={{ color: '#666', fontSize: 12 }}>
+                  {'\n'}(Max: {runtimeText})
+                </Text>
+              )}
+            </Text>
+
+            <View style={styles.timeInputContainer}>
+              <View style={styles.timeInputGroup}>
+                <TextInput
+                  style={styles.timeInput}
+                  placeholder="0"
+                  keyboardType="number-pad"
+                  value={hours}
+                  onChangeText={setHours}
+                  maxLength={3}
+                />
+                <Text style={styles.timeLabel}>hours</Text>
+              </View>
+
+              <View style={styles.timeInputGroup}>
+                <TextInput
+                  style={styles.timeInput}
+                  placeholder="0"
+                  keyboardType="number-pad"
+                  value={minutes}
+                  onChangeText={setMinutes}
+                  maxLength={2}
+                />
+                <Text style={styles.timeLabel}>minutes</Text>
+              </View>
+            </View>
+
+            {runtimeMinutes > 0 && (
+              <TouchableOpacity
+                style={styles.logWholeButton}
+                onPress={handleLogWholeMovie}
+              >
+                <Text style={styles.logWholeButtonText}>
+                  Log Whole {mediaType === 'movie' ? 'Movie' : 'Episode'} ({runtimeText})
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => {
+                  setHours('');
+                  setMinutes('');
+                  setShowWatchTimeModal(false);
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.submitButton]}
+                onPress={handleLogWatchTime}
+              >
+                <Text style={styles.submitButtonText}>Log Time</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -354,31 +679,61 @@ const styles = StyleSheet.create({
     color: "#000000",
   },
 
-  // ScrollView content
   content: {
     paddingBottom: 32,
-    // no horizontal padding so the gradient can be full width
   },
 
-  // Inner padded content below the header gradient
   innerContent: {
-    paddingHorizontal: 16,
-    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
 
   headerGradient: {
     width: "100%",
-    paddingVertical: 32,
+    paddingTop: 80,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
+  },
+
+  headerTop: {
+    width: '100%',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+
+  backButton: {
+    alignSelf: 'flex-start',
+  },
+
+  backButtonCircle: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+
+  backButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+  },
+
+  movieTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#000',
+    textAlign: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 10,
   },
 
   poster: {
-    width: 240,
-    height: 350,
-    borderRadius: 14,
-    backgroundColor: "#ffffff",
+    width: 150,
+    height: 225,
+    borderRadius: 12,
+    backgroundColor: "#e0e0e0",
   },
 
   noPoster: {
@@ -387,62 +742,57 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    color: "#000000",
-    fontSize: 22,
-    fontWeight: "800",
-    textAlign: "center",
-    marginBottom: 4,
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#000',
+    textAlign: 'center',
+    marginBottom: 20,
+    paddingHorizontal: 10,
   },
 
-  metaLine: {
-    fontSize: 13,
-    color: "#555555",
-    textAlign: "center",
-    marginBottom: 6,
+  year: {
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+    color: '#000',
+    marginBottom: 12,
   },
 
   ratingRow: {
     alignItems: "center",
-    marginBottom: 6,
+    marginTop: 20,
+    marginBottom: 10,
   },
 
   starsRow: {
     flexDirection: "row",
     justifyContent: "center",
-    marginBottom: 2,
   },
 
   starIcon: {
-    marginHorizontal: 1,
-  },
-
-  ratingText: {
-    fontSize: 12,
-    color: "#555555",
-    textAlign: "center",
+    marginHorizontal: 2,
   },
 
   runtimeRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 6,
-    marginBottom: 10,
+    marginBottom: 12,
   },
 
-  runtimeText: {
+  runtimeTextStyle: {
     fontSize: 14,
     color: "#666",
     marginLeft: 6,
   },
 
-  // Genres as bubbles
   genresContainer: {
     flexDirection: "row",
     justifyContent: "center",
     flexWrap: "wrap",
-    marginBottom: 16,
+    marginBottom: 8,
   },
+
   genreTag: {
     backgroundColor: "#E8F5E9",
     paddingHorizontal: 12,
@@ -451,38 +801,304 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
     marginBottom: 8,
   },
+
   genreText: {
     fontSize: 14,
     fontWeight: "500",
     color: "#2E7D32",
   },
 
-  section: {
-    width: "100%",
-    marginTop: 14,
+  descriptionContainer: {
+    marginBottom: 16,
   },
 
-  bubble: {
-    alignSelf: "flex-start",
-    backgroundColor: "#CFEAFD",
+  descriptionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#999',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+
+  descriptionText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#666',
+    textAlign: 'center',
+  },
+
+  movieInfoContainer: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+
+  infoSection: {
+    marginBottom: 16,
+  },
+
+  infoLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 8,
+  },
+
+  certificationBadge: {
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#000',
+    borderRadius: 6,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 999,
-    marginBottom: 6,
+    alignSelf: 'flex-start',
   },
 
-  bubbleText: {
-    color: "#000000",
-    fontSize: 12,
-    fontWeight: "700",
-    letterSpacing: 0.4,
+  certificationText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#000',
   },
 
-  value: {
-    color: "#000000",
+  voteContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  voteText: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 6,
+    fontWeight: '500',
+  },
+
+  providersContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+
+  providerText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+
+  addToGroupButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#bcbcff',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    marginTop: 8,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+
+  addToGroupText: {
     fontSize: 16,
-    lineHeight: 22,
-    textAlign: "left",
+    fontWeight: '600',
+    color: '#fff',
+    marginLeft: 8,
+  },
+
+  logWatchTimeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#007AFF',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+
+  logWatchTimeText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    marginLeft: 8,
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    width: '85%',
+    maxWidth: 400,
+    maxHeight: '80%',
+  },
+
+  modalBackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginBottom: 16,
+  },
+
+  modalBackButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    marginLeft: 6,
+  },
+
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#000',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+
+  groupList: {
+    maxHeight: 300,
+    marginBottom: 16,
+  },
+
+  groupItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#f7f7ff',
+    borderRadius: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e3e3f7',
+  },
+
+  groupIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#e3e3f7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+
+  groupName: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4b4b7a',
+  },
+
+  timeInputContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 24,
+  },
+
+  timeInputGroup: {
+    alignItems: 'center',
+  },
+
+  timeInput: {
+    backgroundColor: '#f5f5f5',
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    fontSize: 24,
+    fontWeight: '600',
+    textAlign: 'center',
+    minWidth: 80,
+    marginBottom: 8,
+  },
+
+  timeLabel: {
+    fontSize: 14,
+    color: '#666',
+  },
+
+  logWholeButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    marginBottom: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 3,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+
+  logWholeButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#fff',
+  },
+
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+
+  cancelButton: {
+    backgroundColor: '#f0f0f0',
+  },
+
+  submitButton: {
+    backgroundColor: '#007AFF',
+  },
+
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#666',
+  },
+
+  submitButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
 });
 
