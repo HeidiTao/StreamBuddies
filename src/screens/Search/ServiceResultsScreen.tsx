@@ -92,8 +92,8 @@ const ServiceResultsScreen = () => {
     try {
       const mediaType = result.media_type === 'tv' ? 'tv' : 'movie';
       const url = tmdbToken
-        ? `https://api.themoviedb.org/3/${mediaType}/${result.id}?language=en-US`
-        : `https://api.themoviedb.org/3/${mediaType}/${result.id}?language=en-US&api_key=${tmdbApiKey ?? ''}`;
+        ? `https://api.themoviedb.org/3/${mediaType}/${result.id}?language=en-US&append_to_response=release_dates,content_ratings,watch/providers`
+        : `https://api.themoviedb.org/3/${mediaType}/${result.id}?language=en-US&append_to_response=release_dates,content_ratings,watch/providers&api_key=${tmdbApiKey ?? ''}`;
 
       const headers: HeadersInit = tmdbToken
         ? { accept: 'application/json', Authorization: `Bearer ${tmdbToken}` }
@@ -104,6 +104,33 @@ const ServiceResultsScreen = () => {
 
       const genres = data.genres ? data.genres.map((g: any) => g.name) : [];
       const rating = data.vote_average || 0;
+      const voteCount = data.vote_count || 0;
+      
+      // Get certification (rating like PG-13, R, etc.)
+      let certification = '';
+      if (mediaType === 'movie' && data.release_dates?.results) {
+        const usRelease = data.release_dates.results.find((r: any) => r.iso_3166_1 === 'US');
+        if (usRelease?.release_dates?.[0]?.certification) {
+          certification = usRelease.release_dates[0].certification;
+        }
+      } else if (mediaType === 'tv' && data.content_ratings?.results) {
+        const usRating = data.content_ratings.results.find((r: any) => r.iso_3166_1 === 'US');
+        if (usRating?.rating) {
+          certification = usRating.rating;
+        }
+      }
+      
+      // Get streaming providers for US
+      const streamingProviders: any[] = [];
+      if (data['watch/providers']?.results?.US?.flatrate) {
+        streamingProviders.push(
+          ...data['watch/providers'].results.US.flatrate.map((p: any) => ({
+            provider_id: p.provider_id,
+            provider_name: p.provider_name,
+            logo_path: p.logo_path,
+          }))
+        );
+      }
 
       let runtime = 0;
       if (mediaType === 'movie') {
@@ -125,6 +152,9 @@ const ServiceResultsScreen = () => {
         rating: rating,
         runtime: runtime,
         media_type: mediaType,
+        certification: certification,
+        vote_count: voteCount,
+        streaming_providers: streamingProviders,
       });
     } catch (error) {
       console.error('Error fetching movie details:', error);

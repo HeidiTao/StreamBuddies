@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -20,13 +20,6 @@ import { groupRepository } from '../../repositories/GroupRepository';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
 
-interface WatchedByUser {
-  id: string;
-  initials: string;
-  name: string;
-  color: string;
-}
-
 type RouteParams = {
   movieId: number;
   title: string;
@@ -37,7 +30,16 @@ type RouteParams = {
   rating?: number;
   runtime?: number; // in minutes
   media_type?: 'movie' | 'tv';
+  certification?: string; // PG-13, R, etc.
+  vote_count?: number;
+  streaming_providers?: StreamingProvider[];
 };
+
+interface StreamingProvider {
+  provider_id: number;
+  provider_name: string;
+  logo_path: string;
+}
 
 const MovieDetailSearchView = () => {
   const navigation = useNavigation();
@@ -61,17 +63,21 @@ const MovieDetailSearchView = () => {
     rating = 0,
     runtime = 0,
     media_type = 'movie',
+    certification,
+    vote_count,
+    streaming_providers = [],
   } = route.params || {};
 
-  // Sample watched by users - you can fetch this from your backend
-  const watchedByUsers: WatchedByUser[] = [
-    { id: '1', initials: 'IA', name: 'username1', color: '#FFB3D9' },
-    { id: '2', initials: 'JA', name: 'username2', color: '#D4BAFF' },
-    { id: '3', initials: 'AS', name: 'user3', color: '#BAFFC9' },
-    { id: '4', initials: 'BZ', name: 'buddy4', color: '#FFE4B3' },
-  ];
-
   const year = release_date ? release_date.split('-')[0] : 'N/A';
+  
+  const formatVoteCount = (count: number) => {
+    if (count >= 1000000) {
+      return `${(count / 1000000).toFixed(1)}M`;
+    } else if (count >= 1000) {
+      return `${(count / 1000).toFixed(1)}K`;
+    }
+    return count.toString();
+  };
   
   const formatRuntime = (minutes: number) => {
     if (!minutes || minutes === 0) return null;
@@ -86,18 +92,51 @@ const MovieDetailSearchView = () => {
     }
   };
   
+  // Store movie data in a ref to ensure we always have the current values
+  const movieDataRef = useRef({
+    movieId,
+    title,
+    poster_path,
+  });
+
+  // Update ref when route params change
+  useEffect(() => {
+    movieDataRef.current = {
+      movieId,
+      title,
+      poster_path,
+    };
+  }, [movieId, title, poster_path]);
+
   const handleAddToGroup = async (groupId: string) => {
     if (!groupId) return;
+    
+    // Use ref to get the most current movie data
+    const currentMovie = movieDataRef.current;
+    
+    // Validate that we have the required data
+    if (!currentMovie.movieId || !currentMovie.title) {
+      console.error('Invalid movie data:', currentMovie);
+      Alert.alert('Error', 'Movie information is incomplete. Please try again.');
+      return;
+    }
     
     try {
       const groupRef = doc(db, 'groups', groupId);
       
-      // Create the movie object to add
+      // Create the movie object to add with proper typing AND media_type
       const movieToAdd = {
-        tmdb_id: movieId,
-        title: title,
-        poster_path: poster_path || '',
+        tmdb_id: Number(currentMovie.movieId), // Ensure it's a number
+        title: String(currentMovie.title).trim(), // Ensure it's a clean string
+        poster_path: currentMovie.poster_path ? String(currentMovie.poster_path) : '',
+        media_type: media_type || 'movie', // Store media type so group knows how to fetch it
       };
+      
+      console.log('Adding movie to group:', {
+        groupId,
+        movie: movieToAdd,
+        timestamp: new Date().toISOString()
+      }); // Debug log
       
       // Add to currently_watching array using arrayUnion to avoid duplicates
       await updateDoc(groupRef, {
@@ -106,7 +145,7 @@ const MovieDetailSearchView = () => {
       
       Alert.alert(
         'Added to Group!',
-        `"${title}" has been added to your group's Currently Watching list.`,
+        `"${currentMovie.title}" has been added to your group's Currently Watching list.`,
         [{ text: 'OK' }]
       );
       
@@ -216,7 +255,7 @@ const MovieDetailSearchView = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} bounces={false}>
       {/* Header with gradient background */}
       <LinearGradient
         colors={['#FFB3D9', '#B3D9FF']}
@@ -225,14 +264,16 @@ const MovieDetailSearchView = () => {
         style={styles.headerGradient}
       >
         {/* Back Button */}
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <View style={styles.backButtonCircle}>
-            <Text style={styles.backButtonText}>Back</Text>
-          </View>
-        </TouchableOpacity>
+        <View style={styles.headerTop}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <View style={styles.backButtonCircle}>
+              <Text style={styles.backButtonText}>Back</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
 
         {/* Title */}
         <Text style={styles.movieTitle}>{title}</Text>
@@ -255,7 +296,7 @@ const MovieDetailSearchView = () => {
       </LinearGradient>
 
       {/* Content */}
-      <ScrollView style={styles.content}>
+      <View style={styles.content}>
         {/* Star Rating */}
         <View style={styles.ratingContainer}>
           {renderStars()}
@@ -285,30 +326,49 @@ const MovieDetailSearchView = () => {
           </View>
         )}
 
-        {/* Description - MOVED HERE */}
+        {/* Description */}
         <View style={styles.descriptionContainer}>
           <Text style={styles.descriptionTitle}>Description:</Text>
           <Text style={styles.descriptionText}>{overview}</Text>
         </View>
 
-        {/* Share Icon
-        <TouchableOpacity style={styles.shareButton}>
-          <Ionicons name="share-social-outline" size={24} color="#666" />
-        </TouchableOpacity> */}
-
-        {/* Watched By Section */}
-        <View style={styles.watchedByContainer}>
-          <Text style={styles.watchedByTitle}>Watched By:</Text>
-          <View style={styles.avatarsContainer}>
-            {watchedByUsers.map((user) => (
-              <View key={user.id} style={styles.avatarWrapper}>
-                <View style={[styles.avatar, { backgroundColor: user.color }]}>
-                  <Text style={styles.avatarInitials}>{user.initials}</Text>
-                </View>
-                <Text style={styles.avatarName}>{user.name}</Text>
+        {/* Movie Info Section */}
+        <View style={styles.movieInfoContainer}>
+          {/* Certification (Rating) */}
+          {certification && (
+            <View style={styles.infoSection}>
+              <Text style={styles.infoLabel}>Rating:</Text>
+              <View style={styles.certificationBadge}>
+                <Text style={styles.certificationText}>{certification}</Text>
               </View>
-            ))}
-          </View>
+            </View>
+          )}
+
+          {/* Vote Count */}
+          {vote_count !== undefined && vote_count > 0 && (
+            <View style={styles.infoSection}>
+              <Text style={styles.infoLabel}>Votes:</Text>
+              <View style={styles.voteContainer}>
+                <Ionicons name="people" size={16} color="#666" />
+                <Text style={styles.voteText}>{formatVoteCount(vote_count)}</Text>
+              </View>
+            </View>
+          )}
+
+          {/* Streaming Providers */}
+          {streaming_providers.length > 0 && (
+            <View style={styles.infoSection}>
+              <Text style={styles.infoLabel}>Available On:</Text>
+              <View style={styles.providersContainer}>
+                {streaming_providers.map((provider, index) => (
+                  <Text key={provider.provider_id} style={styles.providerText}>
+                    {provider.provider_name}
+                    {index < streaming_providers.length - 1 ? ', ' : ''}
+                  </Text>
+                ))}
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Add to Group Button */}
@@ -330,10 +390,7 @@ const MovieDetailSearchView = () => {
           <Ionicons name="time-outline" size={24} color="#fff" />
           <Text style={styles.logWatchTimeText}>Log Watch Time</Text>
         </TouchableOpacity>
-
-        {/* Add some bottom padding for tab bar */}
-        <View style={{ height: 100 }} />
-      </ScrollView>
+      </View>
 
       {/* Group Selection Modal */}
       <Modal
@@ -344,6 +401,15 @@ const MovieDetailSearchView = () => {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
+            {/* Back Button */}
+            <TouchableOpacity
+              style={styles.modalBackButton}
+              onPress={() => setShowGroupModal(false)}
+            >
+              <Ionicons name="arrow-back" size={20} color="#666" />
+              <Text style={styles.modalBackButtonText}>Back</Text>
+            </TouchableOpacity>
+
             <Text style={styles.modalTitle}>Add to Group</Text>
             <Text style={styles.modalSubtitle}>
               Select a group to add "{title}" to:
@@ -364,13 +430,6 @@ const MovieDetailSearchView = () => {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-
-            <TouchableOpacity
-              style={[styles.modalButton, styles.cancelButton]}
-              onPress={() => setShowGroupModal(false)}
-            >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -454,7 +513,7 @@ const MovieDetailSearchView = () => {
           </View>
         </View>
       </Modal>
-    </View>
+    </ScrollView>
   );
 };
 
@@ -469,11 +528,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     alignItems: 'center',
   },
+  headerTop: {
+    width: '100%',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
   backButton: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    zIndex: 10,
+    alignSelf: 'flex-start',
   },
   backButtonCircle: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -491,8 +552,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#000',
     textAlign: 'center',
-    marginTop: 10,
     marginBottom: 20,
+    paddingHorizontal: 10,
   },
   posterContainer: {
     alignItems: 'center',
@@ -508,8 +569,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   content: {
-    flex: 1,
     paddingHorizontal: 20,
+    paddingBottom: 40,
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -573,42 +634,53 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
   },
-  shareButton: {
-    alignSelf: 'flex-end',
-    marginBottom: 8,
+  movieInfoContainer: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
   },
-  watchedByContainer: {
-    marginBottom: 10,
-  },
-  watchedByTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
+  infoSection: {
     marginBottom: 16,
   },
-  avatarsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+  infoLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000',
+    marginBottom: 8,
   },
-  avatarWrapper: {
-    alignItems: 'center',
+  certificationBadge: {
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: '#000',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    alignSelf: 'flex-start',
   },
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-  },
-  avatarInitials: {
-    fontSize: 16,
+  certificationText: {
+    fontSize: 14,
     fontWeight: '700',
     color: '#000',
   },
-  avatarName: {
-    fontSize: 12,
+  voteContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  voteText: {
+    fontSize: 14,
     color: '#666',
+    marginLeft: 6,
+    fontWeight: '500',
+  },
+  providersContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  providerText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
   },
   addToGroupButton: {
     flexDirection: 'row',
@@ -672,6 +744,22 @@ const styles = StyleSheet.create({
     width: '85%',
     maxWidth: 400,
     maxHeight: '80%',
+  },
+  modalBackButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginBottom: 16,
+  },
+  modalBackButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    marginLeft: 6,
   },
   modalTitle: {
     fontSize: 22,

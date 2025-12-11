@@ -25,6 +25,13 @@ const streamingServiceColors: { [key: string]: string } = {
   'Paramount+': '#0064FF',
 };
 
+interface GroupMovie {
+  tmdb_id: number;
+  title: string;
+  poster_path: string;
+  media_type?: 'movie' | 'tv';
+}
+
 export default function GroupDetailView({ route, navigation }: Props) {
   const initialGroup = route.params?.groupId;
   const { authUser } = useAuth();
@@ -119,9 +126,9 @@ export default function GroupDetailView({ route, navigation }: Props) {
     fetchGroupData();
   }, [group?.id]);
 
-  // Fetch movie/show details only if group has content
+  // Fetch movie/show details - FIXED to use media_type properly
   useEffect(() => {
-    async function fetchMovies(items: Array<{ tmdb_id: number; title?: string; poster_path?: string }>, setter: (data: any[]) => void) {
+    async function fetchMovies(items: GroupMovie[], setter: (data: any[]) => void) {
       if (!items || items.length === 0) {
         setter([]);
         return;
@@ -129,26 +136,54 @@ export default function GroupDetailView({ route, navigation }: Props) {
       
       try {
         const results = await Promise.all(
-          items.map(item => fetchTMDBDetails(item.tmdb_id, 'tv').catch(() => fetchTMDBDetails(item.tmdb_id, 'movie')))
+          items.map(async (item) => {
+            try {
+              // Use stored media_type if available, otherwise try both
+              const mediaType = item.media_type || 'movie';
+              console.log(`Fetching ${item.title} as ${mediaType} with ID ${item.tmdb_id}`);
+              
+              let result;
+              if (item.media_type) {
+                // If we have media_type, use it directly
+                result = await fetchTMDBDetails(item.tmdb_id, mediaType);
+              } else {
+                // Fallback: try movie first, then TV (old behavior for backward compatibility)
+                result = await fetchTMDBDetails(item.tmdb_id, 'movie')
+                  .catch(() => fetchTMDBDetails(item.tmdb_id, 'tv'));
+              }
+              
+              return result;
+            } catch (err) {
+              console.error(`Failed to fetch details for ${item.title}:`, err);
+              // Return stored data as fallback
+              return {
+                id: item.tmdb_id,
+                title: item.title,
+                poster_path: item.poster_path,
+                overview: '',
+              };
+            }
+          })
         );
         setter(results);
       } catch (e) {
+        console.error('Error fetching movies:', e);
         setter([]);
       }
     }
     
     if (group?.currently_watching && group.currently_watching.length > 0) {
-      fetchMovies(group.currently_watching, setCurrentlyWatching);
+      fetchMovies(group.currently_watching as GroupMovie[], setCurrentlyWatching);
     } else {
       setCurrentlyWatching([]);
     }
     
     if (group?.finished && group.finished.length > 0) {
-      fetchMovies(group.finished, setFinished);
+      fetchMovies(group.finished as GroupMovie[], setFinished);
     } else {
       setFinished([]);
     }
-  }, [group]);
+  }, [group?.currently_watching, group?.finished]);
 
   // Load comments from group
   useEffect(() => {
@@ -200,17 +235,18 @@ export default function GroupDetailView({ route, navigation }: Props) {
     setShowFinishedModal(true);
   };
 
-  const handleMoveToFinished = async (movie: { tmdb_id: number; title: string; poster_path: string }) => {
+  const handleMoveToFinished = async (movie: GroupMovie) => {
     if (!group?.id) return;
 
     try {
       const groupRef = doc(db, 'groups', group.id);
 
+      // Determine media type
+      const mediaType = movie.media_type || 'movie';
+      
       let movieDetails;
       try {
-        movieDetails = await fetchTMDBDetails(movie.tmdb_id, 'tv').catch(() => 
-          fetchTMDBDetails(movie.tmdb_id, 'movie')
-        );
+        movieDetails = await fetchTMDBDetails(movie.tmdb_id, mediaType);
       } catch (err) {
         console.error('Error fetching movie details:', err);
       }
@@ -235,7 +271,6 @@ export default function GroupDetailView({ route, navigation }: Props) {
         }
 
         const genres = movieDetails.genres?.map((g: any) => g.name) || [];
-        const mediaType = movieDetails.name ? 'tv' : 'movie';
 
         if (runtime > 0) {
           logWatchTime({
@@ -628,8 +663,11 @@ export default function GroupDetailView({ route, navigation }: Props) {
 
             <ScrollView>
               {group?.currently_watching && group.currently_watching.length > 0 ? (
-                group.currently_watching.map((movie) => {
+                (group.currently_watching as GroupMovie[]).map((movie) => {
+                  // Use stored title as fallback
                   const displayItem = currentlyWatching.find(item => item.id === movie.tmdb_id);
+                  const displayTitle = displayItem?.name || displayItem?.title || movie.title;
+                  
                   return (
                     <TouchableOpacity
                       key={movie.tmdb_id}
@@ -651,7 +689,7 @@ export default function GroupDetailView({ route, navigation }: Props) {
                         resizeMode="cover"
                       />
                       <Text style={{ flex: 1, fontSize: 16, fontWeight: '500', color: '#4b4b7a' }}>
-                        {displayItem?.name || displayItem?.title || movie.title}
+                        {displayTitle}
                       </Text>
                       <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
                     </TouchableOpacity>

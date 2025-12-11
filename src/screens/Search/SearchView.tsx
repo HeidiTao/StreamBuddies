@@ -33,10 +33,8 @@ const SearchScreen = () => {
   const navigation = useNavigation();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const debounceTimeout = useRef<NodeJS.Timeout>();
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
   const [loading, setLoading] = useState(false);
-  const [selectedService, setSelectedService] = useState<string | null>(null);
-  const [showingServiceResults, setShowingServiceResults] = useState(false);
 
   const tmdbToken = process.env.EXPO_PUBLIC_TMDB_READ_TOKEN;
   const tmdbApiKey = process.env.EXPO_PUBLIC_TMDB_API_KEY;
@@ -49,11 +47,6 @@ const SearchScreen = () => {
   ];
 
   const searchMoviesAndTV = async (query: string) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
     setLoading(true);
 
     try {
@@ -108,12 +101,19 @@ const SearchScreen = () => {
 
   // also allow search to happen while users type
   useEffect(() => {
-    if (!searchQuery) return;
+    if (!searchQuery) {
+      setSearchResults([]);
+      return;
+    }
 
     if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
     debounceTimeout.current = setTimeout(() => {
       searchMoviesAndTV(searchQuery);
-    }, 300)
+    }, 300);
+
+    return () => {
+      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    };
   }, [searchQuery])
 
 
@@ -126,12 +126,12 @@ const SearchScreen = () => {
   };
 
   const handleResultPress = async (result: SearchResult) => {
-    // Fetch additional details to get genres, rating, and runtime
+    // Fetch additional details to get genres, rating, runtime, certification, and streaming providers
     try {
       const mediaType = result.media_type === 'tv' ? 'tv' : 'movie';
       const url = tmdbToken
-        ? `https://api.themoviedb.org/3/${mediaType}/${result.id}?language=en-US`
-        : `https://api.themoviedb.org/3/${mediaType}/${result.id}?language=en-US&api_key=${tmdbApiKey ?? ''}`;
+        ? `https://api.themoviedb.org/3/${mediaType}/${result.id}?language=en-US&append_to_response=release_dates,content_ratings,watch/providers`
+        : `https://api.themoviedb.org/3/${mediaType}/${result.id}?language=en-US&append_to_response=release_dates,content_ratings,watch/providers&api_key=${tmdbApiKey ?? ''}`;
 
       const headers: HeadersInit = tmdbToken
         ? { accept: 'application/json', Authorization: `Bearer ${tmdbToken}` }
@@ -142,6 +142,33 @@ const SearchScreen = () => {
 
       const genres = data.genres ? data.genres.map((g: any) => g.name) : [];
       const rating = data.vote_average || 0;
+      const voteCount = data.vote_count || 0;
+      
+      // Get certification (rating like PG-13, R, etc.)
+      let certification = '';
+      if (mediaType === 'movie' && data.release_dates?.results) {
+        const usRelease = data.release_dates.results.find((r: any) => r.iso_3166_1 === 'US');
+        if (usRelease?.release_dates?.[0]?.certification) {
+          certification = usRelease.release_dates[0].certification;
+        }
+      } else if (mediaType === 'tv' && data.content_ratings?.results) {
+        const usRating = data.content_ratings.results.find((r: any) => r.iso_3166_1 === 'US');
+        if (usRating?.rating) {
+          certification = usRating.rating;
+        }
+      }
+      
+      // Get streaming providers for US
+      const streamingProviders: any[] = [];
+      if (data['watch/providers']?.results?.US?.flatrate) {
+        streamingProviders.push(
+          ...data['watch/providers'].results.US.flatrate.map((p: any) => ({
+            provider_id: p.provider_id,
+            provider_name: p.provider_name,
+            logo_path: p.logo_path,
+          }))
+        );
+      }
       
       // For movies: use runtime directly
       // For TV shows: use episode_run_time average or first value
@@ -167,16 +194,13 @@ const SearchScreen = () => {
         rating: rating,
         runtime: runtime,
         media_type: mediaType,
+        certification: certification,
+        vote_count: voteCount,
+        streaming_providers: streamingProviders,
       });
     } catch (error) {
       console.error('Error fetching movie details:', error);
     }
-  };
-
-  const handleBackToSearch = () => {
-    setShowingServiceResults(false);
-    setSearchResults([]);
-    setSelectedService(null);
   };
 
   return (
@@ -210,19 +234,8 @@ const SearchScreen = () => {
         style={styles.content}
         contentContainerStyle={styles.contentContainer}
       >
-        {/* Back Button when showing service results */}
-        {showingServiceResults && (
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={handleBackToSearch}
-          >
-            <Ionicons name="arrow-back" size={24} color="#666" />
-            <Text style={styles.backButtonText}>Back to Search</Text>
-          </TouchableOpacity>
-        )}
-
         {/* Streaming Service Buttons */}
-        {searchResults.length === 0 && !loading && !showingServiceResults && (
+        {searchResults.length === 0 && !loading && (
           <>
             {streamingServices.map((service) => (
               <TouchableOpacity
@@ -230,7 +243,6 @@ const SearchScreen = () => {
                 style={[
                   styles.serviceButton,
                   { backgroundColor: service.color },
-                  selectedService === service.id && styles.serviceButtonSelected,
                 ]}
                 onPress={() => handleServicePress(service)}
               >
@@ -361,10 +373,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  serviceButtonSelected: {
-    borderWidth: 2,
-    borderColor: '#007AFF',
-  },
   serviceText: {
     fontSize: 18,
     fontWeight: '600',
@@ -443,22 +451,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#999',
     marginTop: 8,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 12,
-    marginBottom: 20,
-    alignSelf: 'flex-start',
-  },
-  backButtonText: {
-    fontSize: 16,
-    color: '#666',
-    marginLeft: 8,
-    fontWeight: '500',
   },
 });
 
