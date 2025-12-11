@@ -4,7 +4,7 @@ import { FirebaseRecaptchaVerifierModal } from "expo-firebase-recaptcha";
 import { signInWithPhoneNumber } from "firebase/auth";
 import { Text, View, TextInput, Button, TouchableWithoutFeedback, 
   Keyboard, TouchableOpacity, Image, KeyboardAvoidingView, Platform, 
-  ScrollView, ActivityIndicator } from "react-native";
+  ScrollView, ActivityIndicator, Alert } from "react-native";
 import { db, auth } from "../../../config/firebase";
 import { useState, useRef, useEffect } from "react";
 // import { doc, getDoc } from "firebase/firestore";
@@ -31,7 +31,7 @@ const LogInView: React.FC<Props> = ({ navigation }) => {
   const [confirmation, setConfirmation] = useState<ConfirmationResult|null>(null);
   const { authUser, loading: authLoading } = useAuth();
   const { profile = null, loading: profileLoading = true } = useUserProfile(authUser?.uid);
-  const [profileInitialized, setProfileInitialized] = useState(false);
+  // const [profileInitialized, setProfileInitialized] = useState(false);
   const { rawNumber, formattedNumber, setPhoneFromInput } = usePhoneFormatter();
 
   const recaptchaVerifier = useRef<FirebaseRecaptchaVerifierModal | null>(null);
@@ -71,6 +71,11 @@ const LogInView: React.FC<Props> = ({ navigation }) => {
       }
     } catch (err) {
       console.log(err);
+      Alert.alert(
+        "Verification Failed",
+        "Wrong verification code. Please try again.",
+        [{ text: "OK" }]
+      );
     }
   };
 
@@ -162,6 +167,7 @@ const LogInView: React.FC<Props> = ({ navigation }) => {
           placeholderTextColor="#d5d5d6ff"
           onChangeText={setCode}
           keyboardType="phone-pad"
+          maxLength={6}
           // editable={!!confirmation}
           style={logInStyles.inputBlock}  
         />

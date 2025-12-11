@@ -168,7 +168,6 @@ const ListsView: React.FC<Props> = ({ navigation }) => {
                     ? handleDeleteList(list)
                     : navigation.navigate('ListDetail', { list: list })
                   }
-                  showDeleteIcon={removeMode}
                 />
               ))}
             </View>

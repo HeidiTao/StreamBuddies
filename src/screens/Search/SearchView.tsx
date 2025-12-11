@@ -12,6 +12,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { searchStyles } from '../../styles/searchStyles';
 
 interface StreamingService {
   id: string;
@@ -204,18 +205,18 @@ const SearchScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={searchStyles.container}>
       {/* Gradient Header */}
       <LinearGradient
         colors={['#E8D5F0', '#D5E8F8']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
-        style={styles.gradientHeader}
+        style={searchStyles.gradientHeader}
       >
         {/* Search Bar */}
-        <View style={styles.searchContainer}>
+        <View style={searchStyles.searchContainer}>
           <TextInput
-            style={styles.searchInput}
+            style={searchStyles.searchInput}
             placeholder="Search..."
             placeholderTextColor="#999"
             value={searchQuery}
@@ -223,7 +224,7 @@ const SearchScreen = () => {
             onSubmitEditing={handleSearch}
             returnKeyType="search"
           />
-          <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
+          <TouchableOpacity style={searchStyles.searchButton} onPress={handleSearch}>
             <Ionicons name="search" size={20} color="#666" />
           </TouchableOpacity>
         </View>
@@ -231,8 +232,8 @@ const SearchScreen = () => {
 
       {/* Content Area */}
       <ScrollView 
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
+        style={searchStyles.content}
+        contentContainerStyle={searchStyles.contentContainer}
       >
         {/* Streaming Service Buttons */}
         {searchResults.length === 0 && !loading && (
@@ -241,12 +242,12 @@ const SearchScreen = () => {
               <TouchableOpacity
                 key={service.id}
                 style={[
-                  styles.serviceButton,
+                  searchStyles.serviceButton,
                   { backgroundColor: service.color },
                 ]}
                 onPress={() => handleServicePress(service)}
               >
-                <Text style={styles.serviceText}>{service.name}</Text>
+                <Text style={searchStyles.serviceText}>{service.name}</Text>
                 <Ionicons name="chevron-forward" size={20} color="#666" />
               </TouchableOpacity>
             ))}
@@ -255,21 +256,21 @@ const SearchScreen = () => {
 
         {/* Loading Indicator */}
         {loading && (
-          <View style={styles.loadingContainer}>
+          <View style={searchStyles.loadingContainer}>
             <ActivityIndicator size="large" color="#007AFF" />
           </View>
         )}
 
         {/* Search Results */}
         {!loading && searchResults.length > 0 && (
-          <View style={styles.resultsContainer}>
-            <Text style={styles.resultsTitle}>
+          <View style={searchStyles.resultsContainer}>
+            <Text style={searchStyles.resultsTitle}>
               {searchQuery ? `Results for "${searchQuery}"` : 'Popular on this service'}
             </Text>
             {searchResults.map((result) => (
               <TouchableOpacity
                 key={`${result.media_type}-${result.id}`}
-                style={styles.resultItem}
+                style={searchStyles.resultItem}
                 onPress={() => handleResultPress(result)}
               >
                 {result.poster_path ? (
@@ -277,22 +278,22 @@ const SearchScreen = () => {
                     source={{
                       uri: `https://image.tmdb.org/t/p/w200${result.poster_path}`,
                     }}
-                    style={styles.resultPoster}
+                    style={searchStyles.resultPoster}
                   />
                 ) : (
                   <View style={[styles.resultPoster, styles.noPoster]}>
                     <Ionicons name="film-outline" size={40} color="#ccc" />
                   </View>
                 )}
-                <View style={styles.resultInfo}>
-                  <Text style={styles.resultTitle} numberOfLines={2}>
+                <View style={searchStyles.resultInfo}>
+                  <Text style={searchStyles.resultTitle} numberOfLines={2}>
                     {result.title}
                   </Text>
-                  <Text style={styles.resultType}>
+                  <Text style={searchStyles.resultType}>
                     {result.media_type === 'movie' ? 'Movie' : 'TV Show'}
                     {result.release_date && ` • ${result.release_date.split('-')[0]}`}
                   </Text>
-                  <Text style={styles.resultOverview} numberOfLines={3}>
+                  <Text style={searchStyles.resultOverview} numberOfLines={3}>
                     {result.overview}
                   </Text>
                 </View>
@@ -303,10 +304,10 @@ const SearchScreen = () => {
 
         {/* No Results */}
         {!loading && searchQuery && searchResults.length === 0 && (
-          <View style={styles.noResultsContainer}>
+          <View style={searchStyles.noResultsContainer}>
             <Ionicons name="search-outline" size={60} color="#ccc" />
-            <Text style={styles.noResultsText}>No results found</Text>
-            <Text style={styles.noResultsSubtext}>
+            <Text style={searchStyles.noResultsText}>No results found</Text>
+            <Text style={searchStyles.noResultsSubtext}>
               Try a different search term
             </Text>
           </View>
@@ -315,143 +316,4 @@ const SearchScreen = () => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  gradientHeader: {
-    paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 25,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#000',
-  },
-  searchButton: {
-    padding: 4,
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 20,
-  },
-  serviceButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 24,
-    borderRadius: 25,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  serviceText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
-  },
-  loadingContainer: {
-    paddingVertical: 40,
-    alignItems: 'center',
-  },
-  resultsContainer: {
-    marginTop: 8,
-  },
-  resultsTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
-    color: '#000',
-  },
-  resultItem: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 12,
-    padding: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  resultPoster: {
-    width: 80,
-    height: 120,
-    borderRadius: 8,
-    backgroundColor: '#e0e0e0',
-  },
-  noPoster: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  resultInfo: {
-    flex: 1,
-    marginLeft: 12,
-    justifyContent: 'center',
-  },
-  resultTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 4,
-  },
-  resultType: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 6,
-  },
-  resultOverview: {
-    fontSize: 13,
-    color: '#666',
-    lineHeight: 18,
-  },
-  noResultsContainer: {
-    alignItems: 'center',
-    paddingVertical: 60,
-  },
-  noResultsText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#666',
-    marginTop: 16,
-  },
-  noResultsSubtext: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 8,
-  },
-});
-
 export default SearchScreen;

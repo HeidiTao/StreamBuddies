@@ -11,6 +11,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { serviceResultStyles } from '../../styles/searchStyles';
 
 interface SearchResult {
   id: number;
@@ -162,41 +163,41 @@ const ServiceResultsScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={serviceResultStyles.container}>
       {/* Gradient Header */}
       <LinearGradient
         colors={['#E8D5F0', '#D5E8F8']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
-        style={styles.gradientHeader}
+        style={serviceResultStyles.gradientHeader}
       >
-        <View style={styles.headerContent}>
+        <View style={serviceResultStyles.headerContent}>
           <TouchableOpacity
-            style={styles.backButton}
+            style={serviceResultStyles.backButton}
             onPress={() => navigation.goBack()}
           >
             <Ionicons name="arrow-back" size={24} color="#666" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{serviceName}</Text>
+          <Text style={serviceResultStyles.headerTitle}>{serviceName}</Text>
         </View>
       </LinearGradient>
 
       {/* Results */}
       <ScrollView
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
+        style={serviceResultStyles.content}
+        contentContainerStyle={serviceResultStyles.contentContainer}
       >
         {loading ? (
-          <View style={styles.loadingContainer}>
+          <View style={serviceResultStyles.loadingContainer}>
             <ActivityIndicator size="large" color="#007AFF" />
           </View>
         ) : (
-          <View style={styles.resultsContainer}>
-            <Text style={styles.resultsTitle}>Popular on {serviceName}</Text>
+          <View style={serviceResultStyles.resultsContainer}>
+            <Text style={serviceResultStyles.resultsTitle}>Popular on {serviceName}</Text>
             {results.map((result) => (
               <TouchableOpacity
                 key={`${result.media_type}-${result.id}`}
-                style={styles.resultItem}
+                style={serviceResultStyles.resultItem}
                 onPress={() => handleResultPress(result)}
               >
                 {result.poster_path ? (
@@ -204,22 +205,22 @@ const ServiceResultsScreen = () => {
                     source={{
                       uri: `https://image.tmdb.org/t/p/w200${result.poster_path}`,
                     }}
-                    style={styles.resultPoster}
+                    style={serviceResultStyles.resultPoster}
                   />
                 ) : (
                   <View style={[styles.resultPoster, styles.noPoster]}>
                     <Ionicons name="film-outline" size={40} color="#ccc" />
                   </View>
                 )}
-                <View style={styles.resultInfo}>
-                  <Text style={styles.resultTitle} numberOfLines={2}>
+                <View style={serviceResultStyles.resultInfo}>
+                  <Text style={serviceResultStyles.resultTitle} numberOfLines={2}>
                     {result.title}
                   </Text>
-                  <Text style={styles.resultType}>
+                  <Text style={serviceResultStyles.resultType}>
                     {result.media_type === 'movie' ? 'Movie' : 'TV Show'}
                     {result.release_date && ` • ${result.release_date.split('-')[0]}`}
                   </Text>
-                  <Text style={styles.resultOverview} numberOfLines={3}>
+                  <Text style={serviceResultStyles.resultOverview} numberOfLines={3}>
                     {result.overview}
                   </Text>
                 </View>
@@ -232,96 +233,5 @@ const ServiceResultsScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  gradientHeader: {
-    paddingTop: 60,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  backButton: {
-    marginRight: 12,
-    padding: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    borderRadius: 20,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#000',
-  },
-  content: {
-    flex: 1,
-  },
-  contentContainer: {
-    padding: 20,
-  },
-  loadingContainer: {
-    paddingVertical: 40,
-    alignItems: 'center',
-  },
-  resultsContainer: {
-    marginTop: 8,
-  },
-  resultsTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
-    color: '#000',
-  },
-  resultItem: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 12,
-    padding: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  resultPoster: {
-    width: 80,
-    height: 120,
-    borderRadius: 8,
-    backgroundColor: '#e0e0e0',
-  },
-  noPoster: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  resultInfo: {
-    flex: 1,
-    marginLeft: 12,
-    justifyContent: 'center',
-  },
-  resultTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 4,
-  },
-  resultType: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 6,
-  },
-  resultOverview: {
-    fontSize: 13,
-    color: '#666',
-    lineHeight: 18,
-  },
-});
 
 export default ServiceResultsScreen;
