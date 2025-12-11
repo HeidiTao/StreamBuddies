@@ -7,7 +7,7 @@ by Team 10: Isabelle Anis, Riya Kinny, and Heidi Tao
 
 In the era of streaming, the simple question “What should we watch?” has become work. With multiple services and endless catalogs, people hit choice overload fast. StreamBuddies is a unified hub that surfaces everything you can actually watch across the subscriptions you already pay for. Getting started is quick: log your services and sync contacts. Create friend groups for watch nights, and StreamBuddies automatically builds a shared catalog that includes only titles available to everyone in the group. From there, deciding, queuing, and pressing play is simple. 
 
-[Promo Video](https://drive.google.com/file/d/13EmKHIihBJyUj6Dd-v-5P9xxoOXdGRtn/view?usp=drive_link)
+[Promo Video](https://drive.google.com/file/d/13EmKHIihBJyUj6Dd-v-5P9xxoOXdGRtn/view?usp=drive_link) (video quality might be better when downloaded)
 
 <img src="assets/team10_StreamBuddies_poster.png" alt="StreamBuddies poster" width="30%">
 
