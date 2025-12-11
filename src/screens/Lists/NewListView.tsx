@@ -7,6 +7,8 @@ import React from "react";
 import { useList } from "../../hooks/useList";
 import { createSaveHandler } from "../../utils/listFormHelpers";
 import { newListStyles } from "../../styles/listStyles";
+import { useAuth } from "../../hooks/useAuth";
+import { TopGradientBackground } from "../../styles/topGradientBackground";
 
 type NewListViewNavigationProp = NativeStackNavigationProp<RootStackParamList, 'NewList'>
 
@@ -15,13 +17,17 @@ interface Props {
 }
 
 const NewListView: React.FC<Props> = ({ navigation }) => {
-  const { list, updateList, saveList } = useList(); 
+  const { authUser } = useAuth();
+  console.log("NewListView authUser:", authUser?.uid); // Add this debug line
+  const { list, updateList, saveList } = useList(authUser?.uid || '0'); 
+  console.log("NewListView list owner_user_id:", list.owner_user_id); // And this one
+
 
   const handleSave = createSaveHandler(list, saveList, navigation);
 
-
   return (
-    <ScrollView>
+    <ScrollView style={{backgroundColor: 'rgba(255, 248, 251, 1)'}}>
+      <TopGradientBackground>
       <View style={newListStyles.container}>
         <Text style={newListStyles.title}>Create new list </Text>
         <Text style={newListStyles.label}>List name</Text>
@@ -36,6 +42,7 @@ const NewListView: React.FC<Props> = ({ navigation }) => {
           style={newListStyles.longInput}
           value={list.description}
           onChangeText={(text) => updateList({ description: text})}
+          multiline={true}
         />
 
         {/* private/shared toggle */}
@@ -49,6 +56,7 @@ const NewListView: React.FC<Props> = ({ navigation }) => {
           <Text style={newListStyles.saveButtonText}>Save</Text>
         </TouchableOpacity>
       </View>
+      </TopGradientBackground>
     </ScrollView>
   );
 

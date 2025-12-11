@@ -16,9 +16,11 @@ import {
   setDoc,
   doc,
   Timestamp,
+  where,
 } from "firebase/firestore";
 
 import { db } from "../../../../config/firebase";
+import { useAuth } from "../../../hooks/useAuth";
 
 type AddToListButtonProps = {
   itemId: number; // TMDB id of the movie/show
@@ -31,6 +33,7 @@ const AddToListButton: React.FC<AddToListButtonProps> = ({
   style,
   label = "Add to Watchlist",
 }) => {
+  const { authUser } = useAuth(); 
   const [showListModal, setShowListModal] = useState(false);
   const [userWatchLists, setUserWatchLists] = useState<any[]>([]);
   const [addListNotes, setAddListNotes] = useState("");
@@ -38,7 +41,7 @@ const AddToListButton: React.FC<AddToListButtonProps> = ({
   // Fetch user watchlists when modal opens
   useEffect(() => {
     if (showListModal) {
-      const q = query(collection(db, "watchLists"));
+      const q = query(collection(db, "watchLists"), where('owner_user_id', '==', authUser?.uid));
       getDocs(q).then((snap) => {
         const lists = snap.docs
           .map((d) => ({ id: d.id, ...d.data() }))

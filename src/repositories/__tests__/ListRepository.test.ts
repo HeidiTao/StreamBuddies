@@ -67,7 +67,7 @@ describe('ListRepository', () => {
             owner_user_id: '1',
             visibility: 'private',
             group_id: '0',
-            descrption: 'desc',
+            description: 'desc',
             created_at: expect.anything(),
             updated_at: expect.anything(),
             item_count: 0,

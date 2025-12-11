@@ -11,9 +11,9 @@ export const listStyles = StyleSheet.create({
     // alignItems: 'center' 
   },
   listsTitle: {
-    fontSize: 32,
-    // fontWeight: 'bold',
-    marginLeft: 15,
+    fontSize: 28,
+    fontWeight: '700',
+    // marginLeft: 15,
     // margin: 10,
   },
   listRowContainer: {
@@ -71,6 +71,28 @@ export const listStyles = StyleSheet.create({
 
 })
 
+export const guestListStyles = StyleSheet.create({
+  guestWrapper: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    paddingHorizontal: 40, 
+    backgroundColor: colors.off_white 
+  },
+  mainText: { 
+    fontSize: 20, 
+    fontWeight: '600', 
+    color: '#8070A0', 
+    textAlign: 'center', 
+    marginBottom: 12 
+  },
+  subText: { 
+    fontSize: 14, 
+    color: '#B0A0C0', 
+    textAlign: 'center',
+    marginBottom: 24 
+  }
+})
 
 export const listDetailStyles = StyleSheet.create({
   detailsContainer: {
@@ -194,6 +216,7 @@ export const listDetailStyles = StyleSheet.create({
 
 export const newListStyles = StyleSheet.create({
   container: {
+    marginTop: 70,
     margin: 15,
     padding: 15,
   },
@@ -224,6 +247,7 @@ export const newListStyles = StyleSheet.create({
     backgroundColor: colors.grey,
     borderRadius: 10,
     height: 120,
+    textAlignVertical: 'top',
   },
   saveButton: {
     marginVertical: 15,

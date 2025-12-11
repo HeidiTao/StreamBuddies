@@ -6,6 +6,8 @@ import {
     updateDoc,
     deleteDoc,
     doc,
+    where,
+    query,
     Timestamp
 } from 'firebase/firestore';
 import { db } from '../../config/firebase';
@@ -20,13 +22,14 @@ export class ListRepository {
     * @param callback Function to call when watchlists are updated
     * @returns Unsubscribe function
     */
-    subscribe(callback: (lists: WatchlistDoc[]) => void): () => void {
+    subscribe(userId: string, callback: (lists: WatchlistDoc[]) => void): () => void {
         // establishes a reference to the specific location of data
         const listsCollection = collection(db, this.collectionName);
-        
+        const q = query(listsCollection, where('owner_user_id', '==', userId));
+        console.log("Subscribing to lists collection, userId=", userId);
         // onSnapshot: a method that attaches a listener to a specific point in the database
         // when `listsCollection` changes, the function is immediately executed
-        return onSnapshot(listsCollection, (querySnapshot) => {
+        return onSnapshot(q, (querySnapshot) => {
             const lists: WatchlistDoc[] = [];
             querySnapshot.forEach((doc) => {
                 // oh wow Firebase is smart and only sends the diffs
@@ -34,18 +37,19 @@ export class ListRepository {
                 lists.push({
                     id: doc.id,
                     name: data.name,
-                    owner_user_id: '0',
+                    owner_user_id: data.owner_user_id,
                     visibility: data.visibility,   // "private" | "shared"
                     description: data.description,
                     // group_id?: ID;                     // /groups/{groupId} if shared
                     created_at: data.created_at?.toDate(),
                     updated_at: data.updated_at?.toDate(),
                     item_count: data.item_count,               // denorm
-                    preview_covers: data.preview_covers,  
-                    items: data.items,
+                    preview_covers: data.preview_covers || [],  
+                    items: data.items || [],
                 });
+                console.log("List from Firebase:", data.name, "Description:", data.description); // Add this
             });
-            // Sort lists: incomplete first, then by due date - from lab 7
+            // Sort lists: alphabetically by list title 
             // lists.sort((a, b) => {
             //     if (a.completed !== b.completed) {
             //         return a.completed ? 1 : -1;
@@ -70,7 +74,7 @@ export class ListRepository {
             owner_user_id: list.owner_user_id,
             visibility: list.visibility,
             group_id: list.group_id,
-            descrption: list.description,
+            description: list.description,
             created_at: Timestamp.fromDate(new Date()), // whenever the creation is completed
             updated_at: Timestamp.fromDate(new Date()),
             item_count: 0,               // denorm
