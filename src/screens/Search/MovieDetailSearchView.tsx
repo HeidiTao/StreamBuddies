@@ -1,26 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Image,
-  TouchableOpacity,
-  Modal,
-  TextInput,
-  Alert,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { useWatchStats } from '../contexts/WatchStatsContext';
 import { useAuth } from '../../hooks/useAuth';
 import { useGroups } from '../../hooks/useGroups';
-import { groupRepository } from '../../repositories/GroupRepository';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
-import AddToListButton from "./Components/AddToListButton";
 import { movieDetailsStyles } from '../../styles/searchStyles';
+
+// Components
+import MovieHeader from './Components/MovieHeader';
+import MovieContent from './Components/MovieContent';
+import GroupSelectionModal from './Components/GroupSelectionModal';
+import WatchTimeModal from './Components/WatchTimeModal';
 
 type RouteParams = {
   movieId: number;
@@ -37,7 +30,7 @@ type RouteParams = {
   streaming_providers?: StreamingProvider[];
 };
 
-interface StreamingProvider {
+export interface StreamingProvider {
   provider_id: number;
   provider_name: string;
   logo_path: string;
@@ -259,266 +252,56 @@ const MovieDetailSearchView = () => {
   return (
     <ScrollView style={movieDetailsStyles.container} bounces={false}>
       {/* Header with gradient background */}
-      <LinearGradient
-        colors={['#FFB3D9', '#B3D9FF']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={movieDetailsStyles.headerGradient}
-      >
-        {/* Back Button */}
-        <View style={movieDetailsStyles.headerTop}>
-          <TouchableOpacity 
-            style={movieDetailsStyles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <View style={movieDetailsStyles.backButtonCircle}>
-              <Text style={movieDetailsStyles.backButtonText}>Back</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Title */}
-        <Text style={movieDetailsStyles.movieTitle}>{title}</Text>
-
-        {/* Poster */}
-        <View style={movieDetailsStyles.posterContainer}>
-          {poster_path ? (
-            <Image
-              source={{
-                uri: `https://image.tmdb.org/t/p/w500${poster_path}`,
-              }}
-              style={movieDetailsStyles.posterImage}
-            />
-          ) : (
-            <View style={[movieDetailsStyles.posterImage, movieDetailsStyles.noPoster]}>
-              <Ionicons name="film-outline" size={80} color="#ccc" />
-            </View>
-          )}
-        </View>
-      </LinearGradient>
+      <MovieHeader
+        title={title}
+        poster_path={poster_path}
+        onBack={() => navigation.goBack()}
+      />
 
       {/* Content */}
       <View style={movieDetailsStyles.content}>
-        {/* Star Rating */}
-        <View style={movieDetailsStyles.ratingContainer}>
-          {renderStars()}
-        </View>
-
-        {/* Year */}
-        <Text style={movieDetailsStyles.year}>{year}</Text>
-
-        {/* Runtime */}
-        {runtime > 0 && (
-          <View style={movieDetailsStyles.runtimeContainer}>
-            <Ionicons name="time-outline" size={16} color="#666" />
-            <Text style={movieDetailsStyles.runtimeText}>
-              {formatRuntime(runtime)} {media_type === 'tv' ? '(per episode avg)' : ''}
-            </Text>
-          </View>
-        )}
-
-        {/* Genres */}
-        {genres.length > 0 && (
-          <View style={movieDetailsStyles.genresContainer}>
-            {genres.map((genre, index) => (
-              <View key={index} style={movieDetailsStyles.genreTag}>
-                <Text style={movieDetailsStyles.genreText}>{genre}</Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* Description */}
-        <View style={movieDetailsStyles.descriptionContainer}>
-          <Text style={movieDetailsStyles.descriptionTitle}>Description:</Text>
-          <Text style={movieDetailsStyles.descriptionText}>{overview}</Text>
-        </View>
-
-        {/* Movie Info Section */}
-        <View style={movieDetailsStyles.movieInfoContainer}>
-          {/* Certification (Rating) */}
-          {certification && (
-            <View style={movieDetailsStyles.infoSection}>
-              <Text style={movieDetailsStyles.infoLabel}>Rating:</Text>
-              <View style={movieDetailsStyles.certificationBadge}>
-                <Text style={movieDetailsStyles.certificationText}>{certification}</Text>
-              </View>
-            </View>
-          )}
-
-          {/* Vote Count */}
-          {vote_count !== undefined && vote_count > 0 && (
-            <View style={movieDetailsStyles.infoSection}>
-              <Text style={movieDetailsStyles.infoLabel}>Votes:</Text>
-              <View style={movieDetailsStyles.voteContainer}>
-                <Ionicons name="people" size={16} color="#666" />
-                <Text style={movieDetailsStyles.voteText}>{formatVoteCount(vote_count)}</Text>
-              </View>
-            </View>
-          )}
-
-          {/* Streaming Providers */}
-          {streaming_providers.length > 0 && (
-            <View style={movieDetailsStyles.infoSection}>
-              <Text style={movieDetailsStyles.infoLabel}>Available On:</Text>
-              <View style={movieDetailsStyles.providersContainer}>
-                {streaming_providers.map((provider, index) => (
-                  <Text key={provider.provider_id} style={movieDetailsStyles.providerText}>
-                    {provider.provider_name}
-                    {index < streaming_providers.length - 1 ? ', ' : ''}
-                  </Text>
-                ))}
-              </View>
-            </View>
-          )}
-        </View>
-
-        <View style={{ marginTop: 10, marginBottom: 6 }}>
-          <AddToListButton itemId={movieId} />
-        </View>
-
-        {/* Add to Group Button */}
-        {authUser && groups.length > 0 && (
-          <TouchableOpacity
-            style={movieDetailsStyles.addToGroupButton}
-            onPress={() => setShowGroupModal(true)}
-          >
-            <Ionicons name="people-outline" size={24} color="#fff" />
-            <Text style={movieDetailsStyles.addToGroupText}>Add to Group</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Log Watch Time Button */}
-        <TouchableOpacity
-          style={movieDetailsStyles.logWatchTimeButton}
-          onPress={() => setShowWatchTimeModal(true)}
-        >
-          <Ionicons name="time-outline" size={24} color="#fff" />
-          <Text style={movieDetailsStyles.logWatchTimeText}>Log Watch Time</Text>
-        </TouchableOpacity>
+        <MovieContent
+          year={year}
+          runtime={runtime}
+          media_type={media_type}
+          genres={genres}
+          overview={overview}
+          certification={certification}
+          vote_count={vote_count}
+          streaming_providers={streaming_providers}
+          movieId={movieId}
+          renderStars={renderStars}
+          showAddToGroupButton={!!(authUser && groups.length > 0)}
+          onPressAddToGroup={() => setShowGroupModal(true)}
+          onPressLogWatchTime={() => setShowWatchTimeModal(true)}
+        />
       </View>
 
       {/* Group Selection Modal */}
-      <Modal
+      <GroupSelectionModal
         visible={showGroupModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowGroupModal(false)}
-      >
-        <View style={movieDetailsStyles.modalOverlay}>
-          <View style={movieDetailsStyles.modalContent}>
-            {/* Back Button */}
-            <TouchableOpacity
-              style={movieDetailsStyles.modalBackButton}
-              onPress={() => setShowGroupModal(false)}
-            >
-              <Ionicons name="arrow-back" size={20} color="#666" />
-              <Text style={movieDetailsStyles.modalBackButtonText}>Back</Text>
-            </TouchableOpacity>
-
-            <Text style={movieDetailsStyles.modalTitle}>Add to Group</Text>
-            <Text style={movieDetailsStyles.modalSubtitle}>
-              Select a group to add "{title}" to:
-            </Text>
-
-            <ScrollView style={movieDetailsStyles.groupList}>
-              {groups.map((group) => (
-                <TouchableOpacity
-                  key={group.id}
-                  style={movieDetailsStyles.groupItem}
-                  onPress={() => handleAddToGroup(group.id!)}
-                >
-                  <View style={movieDetailsStyles.groupIconContainer}>
-                    <Ionicons name="people" size={24} color="#bcbcff" />
-                  </View>
-                  <Text style={movieDetailsStyles.groupName}>{group.name}</Text>
-                  <Ionicons name="chevron-forward" size={20} color="#999" />
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => setShowGroupModal(false)}
+        title={title}
+        groups={groups}
+        onSelectGroup={handleAddToGroup}
+      />
 
       {/* Watch Time Modal */}
-      <Modal
+      <WatchTimeModal
         visible={showWatchTimeModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowWatchTimeModal(false)}
-      >
-        <View style={movieDetailsStyles.modalOverlay}>
-          <View style={movieDetailsStyles.modalContent}>
-            <Text style={movieDetailsStyles.modalTitle}>Log Watch Time</Text>
-            <Text style={movieDetailsStyles.modalSubtitle}>
-              How long did you watch?
-              {runtime > 0 && (
-                <Text style={{ color: '#666', fontSize: 12 }}>
-                  {'\n'}(Max: {formatRuntime(runtime)})
-                </Text>
-              )}
-            </Text>
-
-            <View style={movieDetailsStyles.timeInputContainer}>
-              <View style={movieDetailsStyles.timeInputGroup}>
-                <TextInput
-                  style={movieDetailsStyles.timeInput}
-                  placeholder="0"
-                  keyboardType="number-pad"
-                  value={hours}
-                  onChangeText={setHours}
-                  maxLength={3}
-                />
-                <Text style={movieDetailsStyles.timeLabel}>hours</Text>
-              </View>
-
-              <View style={movieDetailsStyles.timeInputGroup}>
-                <TextInput
-                  style={movieDetailsStyles.timeInput}
-                  placeholder="0"
-                  keyboardType="number-pad"
-                  value={minutes}
-                  onChangeText={setMinutes}
-                  maxLength={2}
-                />
-                <Text style={movieDetailsStyles.timeLabel}>minutes</Text>
-              </View>
-            </View>
-
-            {/* Log Whole Movie Button */}
-            {runtime > 0 && (
-              <TouchableOpacity
-                style={movieDetailsStyles.logWholeButton}
-                onPress={handleLogWholeMovie}
-              >
-                <Text style={movieDetailsStyles.logWholeButtonText}>
-                  Log Whole {media_type === 'movie' ? 'Movie' : 'Episode'} ({formatRuntime(runtime)})
-                </Text>
-              </TouchableOpacity>
-            )}
-
-            <View style={movieDetailsStyles.modalButtons}>
-              <TouchableOpacity
-                style={[movieDetailsStyles.modalButton, movieDetailsStyles.cancelButton]}
-                onPress={() => {
-                  setHours('');
-                  setMinutes('');
-                  setShowWatchTimeModal(false);
-                }}
-              >
-                <Text style={movieDetailsStyles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[movieDetailsStyles.modalButton, movieDetailsStyles.submitButton]}
-                onPress={handleLogWatchTime}
-              >
-                <Text style={movieDetailsStyles.submitButtonText}>Log Time</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+        onClose={() => {
+          setShowWatchTimeModal(false);
+        }}
+        runtime={runtime}
+        media_type={media_type}
+        hours={hours}
+        minutes={minutes}
+        setHours={setHours}
+        setMinutes={setMinutes}
+        formatRuntime={formatRuntime}
+        onLogWatchTime={handleLogWatchTime}
+        onLogWholeMovie={handleLogWholeMovie}
+      />
     </ScrollView>
   );
 };
