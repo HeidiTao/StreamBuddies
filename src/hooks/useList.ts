@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { WatchlistDoc } from "../sample_structs";
 import { listRepository } from "../repositories/ListRepository";
 
-export const useList = (initialList?: WatchlistDoc) => {
+export const useList = (userId: string, initialList?: WatchlistDoc) => {
     const [list, setList] = useState<WatchlistDoc>(
         initialList || {
             name: '',
-            owner_user_id: '0',
+            owner_user_id: userId,
             visibility: 'private',
             description: '',
             group_id: '0',
@@ -17,6 +17,13 @@ export const useList = (initialList?: WatchlistDoc) => {
             items: [],
         }
     )
+
+    // Update owner_user_id when userId changes (and we don't have an initialList)
+    useEffect(() => {
+        if (!initialList && userId && userId !== '0') {
+            setList(prev => ({ ...prev, owner_user_id: userId }));
+        }
+    }, [userId, initialList]);
 
     const updateList = (updates: Partial<WatchlistDoc>) => {
         setList((prev) => ({ ...prev, ...updates }));

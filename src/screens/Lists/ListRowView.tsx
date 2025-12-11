@@ -15,15 +15,6 @@ const ListRowView: React.FC<ListRowViewProps> = ({ list, isLastList, onPress }) 
   return (
     <View>
     <TouchableOpacity style={listStyles.listRowContainer} onPress={onPress}>
-      {/* <Image source={{uri: list.preview_covers[0]}} style={listStyles.listThumbnail}/> */}
-      {/* <Image
-        source={
-          list.preview_covers.length != 0
-            ? { uri: list.preview_covers[0] }
-            : require("../../../assets/default_list_cover.png")
-        }
-        style={listStyles.listThumbnail}
-      /> */}
 
       <Image
         source={
@@ -39,8 +30,6 @@ const ListRowView: React.FC<ListRowViewProps> = ({ list, isLastList, onPress }) 
         <Text style={listStyles.listTitle}> {list.name} </Text>
         <Text style={listStyles.listDesc}> {list.description} </Text>
       </View>
-
-      
 
       {/* TODO(maybe): swipe to delete list? */}
     </TouchableOpacity>
