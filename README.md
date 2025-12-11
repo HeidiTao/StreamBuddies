@@ -96,4 +96,5 @@ Jest is a testing framework that integrates very well with React Native apps. It
 - Allow multi-selection on explore page filters
 - Allow users to create shared watchlists for groups
 - Enable customized watchlist covers, group icons, and profile pictures.
-  
+
+**[Kanban Board](https://www.notion.so/279a364145b88096a5affb1f922cd274?v=279a364145b8810a89e7000c8319f5cb&source=copy_link)**
