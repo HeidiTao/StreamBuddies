@@ -88,13 +88,10 @@ const LogInView: React.FC<Props> = ({ navigation }) => {
     if (!profileInitialized || profileLoading) return; // wait
 
     if (!profile) {
-      console.log("profile is null, naving to register");
+      console.log("profile is null, naving to register, passing phone: ", rawNumber);
       navigation.navigate("Register", {phone: rawNumber});
-    } //else {
-    //   console.log("yes profile");
-    //   navigation.navigate("Profile");
-    // }
-  }, [authUser, profile, profileLoading])//[authUser, profile])
+    }
+  }, [authUser, profile, profileLoading, confirmation])
 
   if (authLoading || profileLoading) {
     return (
