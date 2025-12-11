@@ -13,9 +13,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../hooks/useAuth';
 import { userRepository } from '../../repositories/UserRepository';
-import { UserDoc } from '../../sample_structs';
+import { UserDoc, WatchlistDoc } from '../../sample_structs';
 import { useGroups } from '../../hooks/useGroups';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
 import { fetchTMDBDetails, getPosterUrl } from '../../utils/tmdbApi';
 
@@ -26,6 +26,7 @@ const ProfileView = () => {
   const [userData, setUserData] = useState<UserDoc | null>(null);
   const [loading, setLoading] = useState(true);
   const [watchHistory, setWatchHistory] = useState<any[]>([]);
+  const [watchlists, setWatchlists] = useState<WatchlistDoc[]>([]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -97,10 +98,6 @@ const ProfileView = () => {
     fetchWatchHistory();
   }, [authUser, groups]);
 
-  const lists = [
-    // Empty for now - will show "No lists have been made"
-  ];
-
   if (!authUser) {
     return (
       <View style={styles.container}>
@@ -150,10 +147,7 @@ const ProfileView = () => {
           <Text style={styles.headerTitle}>Profile</Text>
           <TouchableOpacity
             style={styles.editButton}
-            onPress={() => {
-              // Navigate to edit profile screen
-              console.log('Navigate to edit profile');
-            }}
+            onPress={() => (navigation as any).navigate('EditProfile')}
           >
             <Ionicons name="create-outline" size={24} color="#6e7bb7" />
             <Text style={styles.editButtonText}>Edit Profile</Text>
@@ -227,16 +221,42 @@ const ProfileView = () => {
           )}
         </View>
 
-        {/* Lists */}
+        {/* Lists (Watchlists) */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Lists</Text>
-          {lists.length > 0 ? (
+          {watchlists.length > 0 ? (
             <View>
-              {lists.map((list: any) => (
-                <View key={list.id} style={styles.listItem}>
-                  <Text style={styles.listName}>{list.name}</Text>
-                </View>
+              {watchlists.slice(0, 3).map((watchlist) => (
+                <TouchableOpacity
+                  key={watchlist.id}
+                  style={styles.listItem}
+                  onPress={() => {
+                    // Navigate to Lists tab
+                    (navigation as any).navigate('ListsTab');
+                  }}
+                >
+                  <View style={styles.listIcon}>
+                    <Ionicons name="list" size={20} color="#bcbcff" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.listName}>{watchlist.name}</Text>
+                    <Text style={styles.listItemCount}>
+                      {watchlist.item_count} {watchlist.item_count === 1 ? 'item' : 'items'}
+                    </Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#999" />
+                </TouchableOpacity>
               ))}
+              {watchlists.length > 3 && (
+                <TouchableOpacity
+                  style={styles.seeMoreButton}
+                  onPress={() => {
+                    (navigation as any).navigate('ListsTab');
+                  }}
+                >
+                  <Text style={styles.seeMoreText}>See all {watchlists.length} lists</Text>
+                </TouchableOpacity>
+              )}
             </View>
           ) : (
             <View style={styles.emptyStateCard}>
@@ -244,8 +264,7 @@ const ProfileView = () => {
               <TouchableOpacity
                 style={styles.emptyStateButton}
                 onPress={() => {
-                  // Navigate to lists page
-                  console.log('Navigate to lists page');
+                  (navigation as any).navigate('ListsTab');
                 }}
               >
                 <Text style={styles.emptyStateButtonText}>Create a List</Text>
@@ -518,6 +537,8 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   listItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#f7f7ff',
     padding: 16,
     borderRadius: 12,
@@ -525,10 +546,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e3e3f7',
   },
+  listIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#e3e3f7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
   listName: {
     fontSize: 16,
     fontWeight: '600',
     color: '#4b4b7a',
+  },
+  listItemCount: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 2,
   },
   groupItem: {
     flexDirection: 'row',
