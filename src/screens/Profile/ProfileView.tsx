@@ -11,18 +11,25 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { signOut } from "firebase/auth";
+import { auth } from "../../../config/firebase";
+
 import { useAuth } from '../../hooks/useAuth';
 import { userRepository } from '../../repositories/UserRepository';
+import { useUserProfile } from '../../hooks/useUserProfile';
 import { UserDoc, WatchlistDoc } from '../../sample_structs';
 import { useGroups } from '../../hooks/useGroups';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
 import { fetchTMDBDetails, getPosterUrl } from '../../utils/tmdbApi';
+import { useLists } from '../../hooks/useLists';
 
 const ProfileView = () => {
   const navigation = useNavigation();
   const { authUser } = useAuth();
   const { groups } = useGroups();
+  const { lists } = useLists();
+  const { profile, setProfile } = useUserProfile(authUser?.uid);
   const [userData, setUserData] = useState<UserDoc | null>(null);
   const [loading, setLoading] = useState(true);
   const [watchHistory, setWatchHistory] = useState<any[]>([]);
@@ -47,6 +54,17 @@ const ProfileView = () => {
 
     fetchUserData();
   }, [authUser]);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setProfile(null);
+      setUserData(null);
+      console.log("User signed out");
+    } catch(err) {
+      console.log("Logout error:", err);
+    }
+  }
 
   // Fetch watch history from all groups the user is in
   useEffect(() => {
@@ -324,6 +342,7 @@ const ProfileView = () => {
           style={styles.signOutButton}
           onPress={() => {
             // Sign out logic
+            handleLogout();
             console.log('Sign out');
           }}
         >

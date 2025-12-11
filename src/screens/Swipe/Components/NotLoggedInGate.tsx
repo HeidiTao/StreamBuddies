@@ -2,6 +2,7 @@
 
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 type Props = {
   onContinueGuest: () => void;
@@ -11,6 +12,7 @@ type Props = {
 const NotLoggedInGate: React.FC<Props> = ({ onContinueGuest, onLogin }) => {
   return (
     <View style={styles.container}>
+      <Ionicons name="film-outline" size={80} color="#B8E0D2" style={{ marginBottom: 20 }} />
       <Text style={styles.message}>
         You aren't logged in. Your watchlists and likes won't be saved.
       </Text>

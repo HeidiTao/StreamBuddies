@@ -158,12 +158,6 @@ const ProfileStackScreen = () => {
       {profile ? (<>
         {/* // signed in view: user profile */}
         <Stack.Screen name="Profile" component={ProfileView} options={{}} />
-
-        {/* <Stack.Screen 
-          name="Profile" 
-          component={ProfileView} 
-          options={{ headerShown: false }} 
-        /> */}
         <Stack.Screen 
           name="EditProfile" 
           component={EditProfileScreen} 
