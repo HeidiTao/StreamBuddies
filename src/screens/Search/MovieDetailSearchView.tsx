@@ -19,6 +19,7 @@ import { useGroups } from '../../hooks/useGroups';
 import { groupRepository } from '../../repositories/GroupRepository';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
+import { movieDetailsStyles } from '../../styles/searchStyles';
 
 type RouteParams = {
   movieId: number;
@@ -247,7 +248,7 @@ const MovieDetailSearchView = () => {
           name={i < fullStars ? 'star' : 'star-outline'}
           size={20}
           color="#FFD700"
-          style={styles.star}
+          style={movieDetailsStyles.star}
         />
       );
     }
@@ -255,40 +256,40 @@ const MovieDetailSearchView = () => {
   };
 
   return (
-    <ScrollView style={styles.container} bounces={false}>
+    <ScrollView style={movieDetailsStyles.container} bounces={false}>
       {/* Header with gradient background */}
       <LinearGradient
         colors={['#FFB3D9', '#B3D9FF']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.headerGradient}
+        style={movieDetailsStyles.headerGradient}
       >
         {/* Back Button */}
-        <View style={styles.headerTop}>
+        <View style={movieDetailsStyles.headerTop}>
           <TouchableOpacity 
-            style={styles.backButton}
+            style={movieDetailsStyles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <View style={styles.backButtonCircle}>
-              <Text style={styles.backButtonText}>Back</Text>
+            <View style={movieDetailsStyles.backButtonCircle}>
+              <Text style={movieDetailsStyles.backButtonText}>Back</Text>
             </View>
           </TouchableOpacity>
         </View>
 
         {/* Title */}
-        <Text style={styles.movieTitle}>{title}</Text>
+        <Text style={movieDetailsStyles.movieTitle}>{title}</Text>
 
         {/* Poster */}
-        <View style={styles.posterContainer}>
+        <View style={movieDetailsStyles.posterContainer}>
           {poster_path ? (
             <Image
               source={{
                 uri: `https://image.tmdb.org/t/p/w500${poster_path}`,
               }}
-              style={styles.posterImage}
+              style={movieDetailsStyles.posterImage}
             />
           ) : (
-            <View style={[styles.posterImage, styles.noPoster]}>
+            <View style={[movieDetailsStyles.posterImage, movieDetailsStyles.noPoster]}>
               <Ionicons name="film-outline" size={80} color="#ccc" />
             </View>
           )}
@@ -296,20 +297,20 @@ const MovieDetailSearchView = () => {
       </LinearGradient>
 
       {/* Content */}
-      <View style={styles.content}>
+      <View style={movieDetailsStyles.content}>
         {/* Star Rating */}
-        <View style={styles.ratingContainer}>
+        <View style={movieDetailsStyles.ratingContainer}>
           {renderStars()}
         </View>
 
         {/* Year */}
-        <Text style={styles.year}>{year}</Text>
+        <Text style={movieDetailsStyles.year}>{year}</Text>
 
         {/* Runtime */}
         {runtime > 0 && (
-          <View style={styles.runtimeContainer}>
+          <View style={movieDetailsStyles.runtimeContainer}>
             <Ionicons name="time-outline" size={16} color="#666" />
-            <Text style={styles.runtimeText}>
+            <Text style={movieDetailsStyles.runtimeText}>
               {formatRuntime(runtime)} {media_type === 'tv' ? '(per episode avg)' : ''}
             </Text>
           </View>
@@ -317,51 +318,51 @@ const MovieDetailSearchView = () => {
 
         {/* Genres */}
         {genres.length > 0 && (
-          <View style={styles.genresContainer}>
+          <View style={movieDetailsStyles.genresContainer}>
             {genres.map((genre, index) => (
-              <View key={index} style={styles.genreTag}>
-                <Text style={styles.genreText}>{genre}</Text>
+              <View key={index} style={movieDetailsStyles.genreTag}>
+                <Text style={movieDetailsStyles.genreText}>{genre}</Text>
               </View>
             ))}
           </View>
         )}
 
         {/* Description */}
-        <View style={styles.descriptionContainer}>
-          <Text style={styles.descriptionTitle}>Description:</Text>
-          <Text style={styles.descriptionText}>{overview}</Text>
+        <View style={movieDetailsStyles.descriptionContainer}>
+          <Text style={movieDetailsStyles.descriptionTitle}>Description:</Text>
+          <Text style={movieDetailsStyles.descriptionText}>{overview}</Text>
         </View>
 
         {/* Movie Info Section */}
-        <View style={styles.movieInfoContainer}>
+        <View style={movieDetailsStyles.movieInfoContainer}>
           {/* Certification (Rating) */}
           {certification && (
-            <View style={styles.infoSection}>
-              <Text style={styles.infoLabel}>Rating:</Text>
-              <View style={styles.certificationBadge}>
-                <Text style={styles.certificationText}>{certification}</Text>
+            <View style={movieDetailsStyles.infoSection}>
+              <Text style={movieDetailsStyles.infoLabel}>Rating:</Text>
+              <View style={movieDetailsStyles.certificationBadge}>
+                <Text style={movieDetailsStyles.certificationText}>{certification}</Text>
               </View>
             </View>
           )}
 
           {/* Vote Count */}
           {vote_count !== undefined && vote_count > 0 && (
-            <View style={styles.infoSection}>
-              <Text style={styles.infoLabel}>Votes:</Text>
-              <View style={styles.voteContainer}>
+            <View style={movieDetailsStyles.infoSection}>
+              <Text style={movieDetailsStyles.infoLabel}>Votes:</Text>
+              <View style={movieDetailsStyles.voteContainer}>
                 <Ionicons name="people" size={16} color="#666" />
-                <Text style={styles.voteText}>{formatVoteCount(vote_count)}</Text>
+                <Text style={movieDetailsStyles.voteText}>{formatVoteCount(vote_count)}</Text>
               </View>
             </View>
           )}
 
           {/* Streaming Providers */}
           {streaming_providers.length > 0 && (
-            <View style={styles.infoSection}>
-              <Text style={styles.infoLabel}>Available On:</Text>
-              <View style={styles.providersContainer}>
+            <View style={movieDetailsStyles.infoSection}>
+              <Text style={movieDetailsStyles.infoLabel}>Available On:</Text>
+              <View style={movieDetailsStyles.providersContainer}>
                 {streaming_providers.map((provider, index) => (
-                  <Text key={provider.provider_id} style={styles.providerText}>
+                  <Text key={provider.provider_id} style={movieDetailsStyles.providerText}>
                     {provider.provider_name}
                     {index < streaming_providers.length - 1 ? ', ' : ''}
                   </Text>
@@ -374,21 +375,21 @@ const MovieDetailSearchView = () => {
         {/* Add to Group Button */}
         {authUser && groups.length > 0 && (
           <TouchableOpacity
-            style={styles.addToGroupButton}
+            style={movieDetailsStyles.addToGroupButton}
             onPress={() => setShowGroupModal(true)}
           >
             <Ionicons name="people-outline" size={24} color="#fff" />
-            <Text style={styles.addToGroupText}>Add to Group</Text>
+            <Text style={movieDetailsStyles.addToGroupText}>Add to Group</Text>
           </TouchableOpacity>
         )}
 
         {/* Log Watch Time Button */}
         <TouchableOpacity
-          style={styles.logWatchTimeButton}
+          style={movieDetailsStyles.logWatchTimeButton}
           onPress={() => setShowWatchTimeModal(true)}
         >
           <Ionicons name="time-outline" size={24} color="#fff" />
-          <Text style={styles.logWatchTimeText}>Log Watch Time</Text>
+          <Text style={movieDetailsStyles.logWatchTimeText}>Log Watch Time</Text>
         </TouchableOpacity>
       </View>
 
@@ -399,33 +400,33 @@ const MovieDetailSearchView = () => {
         animationType="slide"
         onRequestClose={() => setShowGroupModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={movieDetailsStyles.modalOverlay}>
+          <View style={movieDetailsStyles.modalContent}>
             {/* Back Button */}
             <TouchableOpacity
-              style={styles.modalBackButton}
+              style={movieDetailsStyles.modalBackButton}
               onPress={() => setShowGroupModal(false)}
             >
               <Ionicons name="arrow-back" size={20} color="#666" />
-              <Text style={styles.modalBackButtonText}>Back</Text>
+              <Text style={movieDetailsStyles.modalBackButtonText}>Back</Text>
             </TouchableOpacity>
 
-            <Text style={styles.modalTitle}>Add to Group</Text>
-            <Text style={styles.modalSubtitle}>
+            <Text style={movieDetailsStyles.modalTitle}>Add to Group</Text>
+            <Text style={movieDetailsStyles.modalSubtitle}>
               Select a group to add "{title}" to:
             </Text>
 
-            <ScrollView style={styles.groupList}>
+            <ScrollView style={movieDetailsStyles.groupList}>
               {groups.map((group) => (
                 <TouchableOpacity
                   key={group.id}
-                  style={styles.groupItem}
+                  style={movieDetailsStyles.groupItem}
                   onPress={() => handleAddToGroup(group.id!)}
                 >
-                  <View style={styles.groupIconContainer}>
+                  <View style={movieDetailsStyles.groupIconContainer}>
                     <Ionicons name="people" size={24} color="#bcbcff" />
                   </View>
-                  <Text style={styles.groupName}>{group.name}</Text>
+                  <Text style={movieDetailsStyles.groupName}>{group.name}</Text>
                   <Ionicons name="chevron-forward" size={20} color="#999" />
                 </TouchableOpacity>
               ))}
@@ -441,10 +442,10 @@ const MovieDetailSearchView = () => {
         animationType="slide"
         onRequestClose={() => setShowWatchTimeModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Log Watch Time</Text>
-            <Text style={styles.modalSubtitle}>
+        <View style={movieDetailsStyles.modalOverlay}>
+          <View style={movieDetailsStyles.modalContent}>
+            <Text style={movieDetailsStyles.modalTitle}>Log Watch Time</Text>
+            <Text style={movieDetailsStyles.modalSubtitle}>
               How long did you watch?
               {runtime > 0 && (
                 <Text style={{ color: '#666', fontSize: 12 }}>
@@ -453,61 +454,61 @@ const MovieDetailSearchView = () => {
               )}
             </Text>
 
-            <View style={styles.timeInputContainer}>
-              <View style={styles.timeInputGroup}>
+            <View style={movieDetailsStyles.timeInputContainer}>
+              <View style={movieDetailsStyles.timeInputGroup}>
                 <TextInput
-                  style={styles.timeInput}
+                  style={movieDetailsStyles.timeInput}
                   placeholder="0"
                   keyboardType="number-pad"
                   value={hours}
                   onChangeText={setHours}
                   maxLength={3}
                 />
-                <Text style={styles.timeLabel}>hours</Text>
+                <Text style={movieDetailsStyles.timeLabel}>hours</Text>
               </View>
 
-              <View style={styles.timeInputGroup}>
+              <View style={movieDetailsStyles.timeInputGroup}>
                 <TextInput
-                  style={styles.timeInput}
+                  style={movieDetailsStyles.timeInput}
                   placeholder="0"
                   keyboardType="number-pad"
                   value={minutes}
                   onChangeText={setMinutes}
                   maxLength={2}
                 />
-                <Text style={styles.timeLabel}>minutes</Text>
+                <Text style={movieDetailsStyles.timeLabel}>minutes</Text>
               </View>
             </View>
 
             {/* Log Whole Movie Button */}
             {runtime > 0 && (
               <TouchableOpacity
-                style={styles.logWholeButton}
+                style={movieDetailsStyles.logWholeButton}
                 onPress={handleLogWholeMovie}
               >
-                <Text style={styles.logWholeButtonText}>
+                <Text style={movieDetailsStyles.logWholeButtonText}>
                   Log Whole {media_type === 'movie' ? 'Movie' : 'Episode'} ({formatRuntime(runtime)})
                 </Text>
               </TouchableOpacity>
             )}
 
-            <View style={styles.modalButtons}>
+            <View style={movieDetailsStyles.modalButtons}>
               <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
+                style={[movieDetailsStyles.modalButton, movieDetailsStyles.cancelButton]}
                 onPress={() => {
                   setHours('');
                   setMinutes('');
                   setShowWatchTimeModal(false);
                 }}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={movieDetailsStyles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.modalButton, styles.submitButton]}
+                style={[movieDetailsStyles.modalButton, movieDetailsStyles.submitButton]}
                 onPress={handleLogWatchTime}
               >
-                <Text style={styles.submitButtonText}>Log Time</Text>
+                <Text style={movieDetailsStyles.submitButtonText}>Log Time</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -516,363 +517,5 @@ const MovieDetailSearchView = () => {
     </ScrollView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  headerGradient: {
-    paddingTop: 50,
-    paddingBottom: 30,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-  },
-  headerTop: {
-    width: '100%',
-    alignItems: 'flex-start',
-    marginBottom: 12,
-  },
-  backButton: {
-    alignSelf: 'flex-start',
-  },
-  backButtonCircle: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  backButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000',
-  },
-  movieTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#000',
-    textAlign: 'center',
-    marginBottom: 20,
-    paddingHorizontal: 10,
-  },
-  posterContainer: {
-    alignItems: 'center',
-  },
-  posterImage: {
-    width: 150,
-    height: 225,
-    borderRadius: 12,
-    backgroundColor: '#e0e0e0',
-  },
-  noPoster: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  star: {
-    marginHorizontal: 2,
-  },
-  year: {
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-    color: '#000',
-    marginBottom: 12,
-  },
-  runtimeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  runtimeText: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 6,
-  },
-  genresContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-    marginBottom: 8,
-  },
-  genreTag: {
-    backgroundColor: '#E8F5E9',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    marginHorizontal: 4,
-    marginBottom: 8,
-  },
-  genreText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#2E7D32',
-  },
-  descriptionContainer: {
-    marginBottom: 16,
-  },
-  descriptionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#999',
-    marginBottom: 6,
-    textAlign: 'center',
-  },
-  descriptionText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#666',
-    textAlign: 'center',
-  },
-  movieInfoContainer: {
-    backgroundColor: '#f9f9f9',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-  },
-  infoSection: {
-    marginBottom: 16,
-  },
-  infoLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000',
-    marginBottom: 8,
-  },
-  certificationBadge: {
-    backgroundColor: '#fff',
-    borderWidth: 2,
-    borderColor: '#000',
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    alignSelf: 'flex-start',
-  },
-  certificationText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#000',
-  },
-  voteContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  voteText: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 6,
-    fontWeight: '500',
-  },
-  providersContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  providerText: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
-  },
-  addToGroupButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#bcbcff',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    marginTop: 8,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  addToGroupText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginLeft: 8,
-  },
-  logWatchTimeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#007AFF',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  logWatchTimeText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-    marginLeft: 8,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 24,
-    width: '85%',
-    maxWidth: 400,
-    maxHeight: '80%',
-  },
-  modalBackButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: '#f0f0f0',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginBottom: 16,
-  },
-  modalBackButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-    marginLeft: 6,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#000',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  groupList: {
-    maxHeight: 300,
-    marginBottom: 16,
-  },
-  groupItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#f7f7ff',
-    borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e3e3f7',
-  },
-  groupIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#e3e3f7',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  groupName: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#4b4b7a',
-  },
-  timeInputContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 24,
-  },
-  timeInputGroup: {
-    alignItems: 'center',
-  },
-  timeInput: {
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    fontSize: 24,
-    fontWeight: '600',
-    textAlign: 'center',
-    minWidth: 80,
-    marginBottom: 8,
-  },
-  timeLabel: {
-    fontSize: 14,
-    color: '#666',
-  },
-  logWholeButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    marginBottom: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 3,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  logWholeButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  modalButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#f0f0f0',
-  },
-  submitButton: {
-    backgroundColor: '#007AFF',
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#666',
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
-  },
-});
 
 export default MovieDetailSearchView;
