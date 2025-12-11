@@ -19,6 +19,7 @@ import { useGroups } from '../../hooks/useGroups';
 import { groupRepository } from '../../repositories/GroupRepository';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
+import AddToListButton from "./Components/AddToListButton";
 
 type RouteParams = {
   movieId: number;
@@ -369,6 +370,10 @@ const MovieDetailSearchView = () => {
               </View>
             </View>
           )}
+        </View>
+
+        <View style={{ marginTop: 10, marginBottom: 6 }}>
+          <AddToListButton itemId={movieId} />
         </View>
 
         {/* Add to Group Button */}
