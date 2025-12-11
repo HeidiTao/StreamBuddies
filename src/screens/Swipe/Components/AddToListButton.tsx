@@ -42,29 +42,45 @@ const AddToListButton: React.FC<AddToListButtonProps> = ({
   const [addListNotes, setAddListNotes] = useState("");
 
   // Fetch user watchlists when modal opens
-  useEffect(() => {
-    if (showListModal) {
+useEffect(() => {
+  const fetchLists = async () => {
+    // modal closed: do nothing
+    if (!showListModal) return;
+
+    // auth not ready / not signed in: avoid where(..., undefined)
+    if (!authUser?.uid) {
+      setUserWatchLists([]);
+      return;
+    }
+
+    try {
       const q = query(
         collection(db, "watchLists"),
-        where("owner_user_id", "==", authUser?.uid)
+        where("owner_user_id", "==", authUser.uid)
       );
 
-      getDocs(q).then((snap) => {
-        const lists = snap.docs
-          .map((d) => ({ id: d.id, ...d.data() }))
-          .filter(
-            (list) =>
-              typeof list.name === "string" &&
-              list.name.trim().length > 0
-          )
-          .sort((a, b) =>
-            a.name.toLowerCase().localeCompare(b.name.toLowerCase())
-          );
+      const snap = await getDocs(q);
 
-        setUserWatchLists(lists);
-      });
+      const lists = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter(
+          (list: any) =>
+            typeof list.name === "string" && list.name.trim().length > 0
+        )
+        .sort((a: any, b: any) =>
+          a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+        );
+
+      setUserWatchLists(lists);
+    } catch (e) {
+      console.error("Failed to fetch watchlists:", e);
+      setUserWatchLists([]);
     }
-  }, [showListModal]);
+  };
+
+  fetchLists();
+}, [showListModal, authUser?.uid]);
+
 
   const handleAddToListConfirm = (listId: string, note: string) => {
     const itemRef = doc(db, `watchLists/${listId}/items/${itemId}`);
