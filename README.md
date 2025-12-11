@@ -23,6 +23,12 @@ In the era of streaming, the simple question “What should we watch?” has bec
 
 # Things to add to readMe for final submission
 - [ ] highlights (so that it's easier for graders to put down "things that stood out")
+- [ ] swipeable interface to find titles
+- [ ] grid view to see all the titles
+- [ ] can make group and add people to it
+- [ ] can make a watch list
+- [ ] can add to watchlist based on user info
 - [ ] design / tech decisions; testing issues
 - [ ] test instructions
+- [ ] test account information
 - [ ] 
