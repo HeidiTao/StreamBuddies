@@ -64,6 +64,11 @@ const LogInView: React.FC<Props> = ({ navigation }) => {
       // console.log("confirmed");
       
       console.log("(confirmed) profileLoading-", profileLoading);
+
+      if (!profile) {
+        console.log("profile is null, naving to register, passing phone: ", rawNumber);
+        navigation.navigate("Register", {phone: rawNumber});
+      }
     } catch (err) {
       console.log(err);
     }
@@ -73,25 +78,25 @@ const LogInView: React.FC<Props> = ({ navigation }) => {
     setConfirmation(null);
   }
 
-  useEffect(() => {
-    console.log("🍼AuthUser:", authUser);
-    console.log("🍼Profile:", profile);
+  // useEffect(() => {
+  //   console.log("🍼AuthUser:", authUser);
+  //   console.log("🍼Profile:", profile);
     
-    console.log("profileLoading-", profileLoading);
-    if (!authUser) return; 
-    if (!profileInitialized && authUser?.uid) {
-      // we know the hook has now started fetching for this uid
-      console.log("initialize profile uhh");
-      setProfileInitialized(true);
-    }
+  //   console.log("profileLoading-", profileLoading);
+  //   if (!authUser) return; 
+  //   if (!profileInitialized && authUser?.uid) {
+  //     // we know the hook has now started fetching for this uid
+  //     console.log("initialize profile uhh");
+  //     setProfileInitialized(true);
+  //   }
 
-    if (!profileInitialized || profileLoading) return; // wait
+  //   if (!profileInitialized || profileLoading) return; // wait
 
-    if (!profile) {
-      console.log("profile is null, naving to register, passing phone: ", rawNumber);
-      navigation.navigate("Register", {phone: rawNumber});
-    }
-  }, [authUser, profile, profileLoading, confirmation])
+  //   if (!profile) {
+  //     console.log("profile is null, naving to register, passing phone: ", rawNumber);
+  //     navigation.navigate("Register", {phone: rawNumber});
+  //   }
+  // }, [authUser, profile, profileLoading, confirmation])
 
   if (authLoading || profileLoading) {
     return (
@@ -176,10 +181,6 @@ const LogInView: React.FC<Props> = ({ navigation }) => {
     </TouchableWithoutFeedback>
   );
 
-  // return (
-  //   <>
-  //   <Text>hi</Text></>
-  // );
 }
 
 export default LogInView;

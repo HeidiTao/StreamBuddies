@@ -33,7 +33,6 @@ const ProfileView = () => {
   const [userData, setUserData] = useState<UserDoc | null>(null);
   const [loading, setLoading] = useState(true);
   const [watchHistory, setWatchHistory] = useState<any[]>([]);
-  const [watchlists, setWatchlists] = useState<WatchlistDoc[]>([]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -239,12 +238,12 @@ const ProfileView = () => {
           )}
         </View>
 
-        {/* Lists (Watchlists) */}
+        {/* Lists (lists) */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Lists</Text>
-          {watchlists.length > 0 ? (
+          {lists.length > 0 ? (
             <View>
-              {watchlists.slice(0, 3).map((watchlist) => (
+              {lists.slice(0, 3).map((watchlist) => (
                 <TouchableOpacity
                   key={watchlist.id}
                   style={styles.listItem}
@@ -265,14 +264,14 @@ const ProfileView = () => {
                   <Ionicons name="chevron-forward" size={20} color="#999" />
                 </TouchableOpacity>
               ))}
-              {watchlists.length > 3 && (
+              {lists.length > 3 && (
                 <TouchableOpacity
                   style={styles.seeMoreButton}
                   onPress={() => {
                     (navigation as any).navigate('ListsTab');
                   }}
                 >
-                  <Text style={styles.seeMoreText}>See all {watchlists.length} lists</Text>
+                  <Text style={styles.seeMoreText}>See all {lists.length} lists</Text>
                 </TouchableOpacity>
               )}
             </View>
