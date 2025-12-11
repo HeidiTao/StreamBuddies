@@ -53,7 +53,9 @@ Below are combinations for accounts that are **already registered as users** in 
 | +1 674-436-7443 | 000000 |
 
 ---
-## Design Decisions
+## Highlights of the app
+
+### Design Decisions
 - **Swipeable interface for discovering titles**: 
 Users can quickly brose movies and TV shows through a swipeable card interface on the home page. This allows for rapid exploration of content and fun interaction. This screen is a highlight of our application because of its gamified way to find new titles without overwhelming the users with too many options. 
 
@@ -69,7 +71,7 @@ From our initial user surveys, being able to save content to lists is one of the
 - **Watchstats logging**: 
 Some users want to know how long they spend on watching shows - we provide a watch stats page linked through the users' profile. Users can choose to log the full timelength of a movie, or the length of time they've spent that day. There are also summary statistics for each month and year, as well as category breakdowns by genre. 
 
-## Tech Decisions
+### Tech Decisions
 - **Authentication**:
 We chose to use signInWithPhoneNumber instead of other methods (e.g., email, Google, etc.) since using phone number is the most direct and convenient method for a mobile application. 
 
@@ -79,6 +81,8 @@ You can acquire your own API keys by registering for a TMDB account, and request
 
 - **Unit testing with Jest**:
 Jest is a testing framework that integrates very well with React Native apps. It provides coverage reports and mock functions to separate testing vs non-testing scopes. 
+
+---
 
 ## Notes on Technical Issues
 - Watchstats are currently local data. It is not linked to each user in our database.
