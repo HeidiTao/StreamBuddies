@@ -77,6 +77,9 @@ We chose to use signInWithPhoneNumber instead of other methods (e.g., email, Goo
 TMDB (The Movie Database) not only has a comprehensive collection of movies and TV shows, but also convenient API endpoints that support searching and filtering with clear documentation. It is also free for non-commercial use, which makes it perfect for the developing phase. The attribution is included at the bottom of the logged-in profile page. 
 You can acquire your own API keys by registering for a TMDB account, and requesting a key within the [accounts setting page](https://www.themoviedb.org/settings/api).
 
+- **Unit testing with Jest**:
+Jest is a testing framework that integrates very well with React Native apps. It provides coverage reports and mock functions to separate testing vs non-testing scopes. 
+
 ## Notes on Technical Issues
 - Watchstats are currently local data. It is not linked to each user in our database.
 
