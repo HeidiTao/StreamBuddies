@@ -3,7 +3,7 @@ CMU F25 67-443 Mobile Application Design and Development Project
 
 by Team 10: Isabelle Anis, Riya Kinny, and Heidi Tao
 
-<img src="assets/stream_buddies_wBG.png" alt="StreamBuddies logo" width="6%">
+<img src="assets/stream_buddies_wBG.jpg" alt="StreamBuddies logo" width="6%">
 
 In the era of streaming, the simple question “What should we watch?” has become work. With multiple services and endless catalogs, people hit choice overload fast. StreamBuddies is a unified hub that surfaces everything you can actually watch across the subscriptions you already pay for. Getting started is quick: log your services and sync contacts. Create friend groups for watch nights, and StreamBuddies automatically builds a shared catalog that includes only titles available to everyone in the group. From there, deciding, queuing, and pressing play is simple. 
 
