@@ -5,8 +5,11 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../../navigation/types';
 import { fetchTMDBDetails, getPosterUrl } from '../../utils/tmdbApi';
 import { groupRepository } from '../../repositories/GroupRepository';
-import { UserDoc } from '../../sample_structs';
+import { UserDoc, GroupDoc } from '../../sample_structs';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../../hooks/useAuth';
+import { doc, updateDoc, arrayUnion, onSnapshot, arrayRemove } from 'firebase/firestore';
+import { db } from '../../../config/firebase';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GroupDetail'>;
 
@@ -22,16 +25,20 @@ const streamingServiceColors: { [key: string]: string } = {
 };
 
 export default function GroupDetailView({ route, navigation }: Props) {
-  const group = route.params?.groupId;
+  const initialGroup = route.params?.groupId;
+  const { authUser } = useAuth();
+
+  const [group, setGroup] = useState<GroupDoc | null>(initialGroup);
+  
   const code = group?.code ? String(group.code).toUpperCase() : (group?.id ? String(group.id).slice(0, 6).toUpperCase() : '');
 
-  // ALL STATE DECLARATIONS
   const [currentlyWatching, setCurrentlyWatching] = useState<any[]>([]);
   const [finished, setFinished] = useState<any[]>([]);
   const [members, setMembers] = useState<UserDoc[]>([]);
   const [sharedServices, setSharedServices] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCommentModal, setShowCommentModal] = useState(false);
+  const [showFinishedModal, setShowFinishedModal] = useState(false);
   const [selectedMovie, setSelectedMovie] = useState<any>(null);
   const [commentText, setCommentText] = useState('');
   const [comments, setComments] = useState<Array<{
@@ -44,6 +51,34 @@ export default function GroupDetailView({ route, navigation }: Props) {
     timestamp: number;
   }>>([]);
   const [randomMemory, setRandomMemory] = useState<any>(null);
+
+  // Subscribe to real-time group updates
+  useEffect(() => {
+    if (!initialGroup?.id) return;
+
+    const groupRef = doc(db, 'groups', initialGroup.id);
+    const unsubscribe = onSnapshot(groupRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setGroup({
+          id: docSnap.id,
+          name: data.name,
+          description: data.description,
+          created_by: data.created_by,
+          member_ids: data.member_ids,
+          member_count: data.member_count,
+          code: data.code,
+          currently_watching: data.currently_watching,
+          finished: data.finished,
+          comments: data.comments,
+          created_at: data.created_at,
+          updated_at: data.updated_at,
+        });
+      }
+    });
+
+    return () => unsubscribe();
+  }, [initialGroup?.id]);
 
   // Fetch members and calculate shared streaming services
   useEffect(() => {
@@ -155,6 +190,33 @@ export default function GroupDetailView({ route, navigation }: Props) {
     setCommentText('');
   };
 
+  const handleOpenFinishedModal = () => {
+    if (!group?.currently_watching || group.currently_watching.length === 0) {
+      alert('No movies in Currently Watching. Add some first!');
+      return;
+    }
+    setShowFinishedModal(true);
+  };
+
+  const handleMoveToFinished = async (movie: { tmdb_id: number; title: string; poster_path: string }) => {
+    if (!group?.id) return;
+
+    try {
+      const groupRef = doc(db, 'groups', group.id);
+      
+      // Remove from currently_watching and add to finished
+      await updateDoc(groupRef, {
+        currently_watching: arrayRemove(movie),
+        finished: arrayUnion(movie)
+      });
+      
+      setShowFinishedModal(false);
+    } catch (error) {
+      console.error('Error moving to finished:', error);
+      alert('Failed to move movie. Please try again.');
+    }
+  };
+
   const handleCloseModal = () => {
     Keyboard.dismiss();
     setShowCommentModal(false);
@@ -162,21 +224,42 @@ export default function GroupDetailView({ route, navigation }: Props) {
     setCommentText('');
   };
 
-  const handleSubmitComment = () => {
+  const handleSubmitComment = async () => {
     if (!commentText.trim()) {
       alert('Please enter a comment');
       return;
     }
 
-    // TODO: Save comment to Firestore
-    console.log('Comment:', {
-      movie: selectedMovie,
-      text: commentText,
-      groupId: group?.id,
-    });
-    
-    alert('Comment submitted! (Feature coming soon)');
-    handleCloseModal();
+    if (!authUser || !group?.id) {
+      alert('Error: User not authenticated or group not found');
+      return;
+    }
+
+    try {
+      const groupRef = doc(db, 'groups', group.id);
+      
+      const currentUser = members.find(m => m.id === authUser.uid);
+      const userName = currentUser?.user_name || 'Anonymous';
+      
+      const newComment = {
+        id: `${Date.now()}_${authUser.uid}`,
+        user_id: authUser.uid,
+        user_name: userName,
+        text: commentText.trim(),
+        movie_id: selectedMovie?.id,
+        movie_title: selectedMovie ? (selectedMovie.name || selectedMovie.title) : undefined,
+        timestamp: Date.now(),
+      };
+      
+      await updateDoc(groupRef, {
+        comments: arrayUnion(newComment)
+      });
+      
+      handleCloseModal();
+    } catch (error) {
+      console.error('Error submitting comment:', error);
+      alert('Failed to submit comment. Please try again.');
+    }
   };
 
   const getRelativeTime = (timestamp: number) => {
@@ -198,8 +281,6 @@ export default function GroupDetailView({ route, navigation }: Props) {
       </View>
     );
   }
-
-  // Rest of your JSX...
 
   return (
     <>
@@ -301,7 +382,12 @@ export default function GroupDetailView({ route, navigation }: Props) {
 
         {/* Currently Watching */}
         <View style={{ marginTop: 18, marginHorizontal: 10 }}>
-          <Text style={{ fontWeight: '600', fontSize: 16, marginBottom: 8 }}>Currently Watching {'>'}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <Text style={{ fontWeight: '600', fontSize: 16 }}>Currently Watching</Text>
+            <TouchableOpacity onPress={navigateToDiscover} style={{ padding: 4 }}>
+              <Ionicons name="add-circle" size={28} color="#6e7bb7" />
+            </TouchableOpacity>
+          </View>
           {currentlyWatching.length > 0 ? (
             <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
               {currentlyWatching.map((item) => (
@@ -341,7 +427,12 @@ export default function GroupDetailView({ route, navigation }: Props) {
 
         {/* Finished */}
         <View style={{ marginTop: 18, marginHorizontal: 10 }}>
-          <Text style={{ fontWeight: '600', fontSize: 16, marginBottom: 8 }}>Finished {'>'}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <Text style={{ fontWeight: '600', fontSize: 16 }}>Finished</Text>
+            <TouchableOpacity onPress={handleOpenFinishedModal} style={{ padding: 4 }}>
+              <Ionicons name="add-circle" size={28} color="#6e7bb7" />
+            </TouchableOpacity>
+          </View>
           {finished.length > 0 ? (
             <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
               {finished.map((item) => (
@@ -359,7 +450,7 @@ export default function GroupDetailView({ route, navigation }: Props) {
             </ScrollView>
           ) : (
             <TouchableOpacity 
-              onPress={navigateToDiscover}
+              onPress={handleOpenFinishedModal}
               style={{ 
                 backgroundColor: '#f7f7ff', 
                 borderRadius: 12, 
@@ -371,24 +462,29 @@ export default function GroupDetailView({ route, navigation }: Props) {
                 justifyContent: 'center'
               }}
             >
-              <Ionicons name="search-outline" size={20} color="#6e7bb7" style={{ marginRight: 8 }} />
+              <Ionicons name="checkmark-circle-outline" size={20} color="#6e7bb7" style={{ marginRight: 8 }} />
               <Text style={{ color: '#6e7bb7', fontWeight: '500' }}>
-                Find movies to watch with your group!
+                Mark movies as finished!
               </Text>
             </TouchableOpacity>
           )}
         </View>
 
-        {/* Comments (formerly Predictions) */}
+        {/* Comments */}
         <View style={{ marginTop: 18, marginHorizontal: 10 }}>
-          <Text style={{ fontWeight: '600', fontSize: 16, marginBottom: 8 }}>Comments {'>'}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <Text style={{ fontWeight: '600', fontSize: 16 }}>Comments</Text>
+            <TouchableOpacity onPress={handleAddComment} style={{ padding: 4 }}>
+              <Ionicons name="add-circle" size={28} color="#6e7bb7" />
+            </TouchableOpacity>
+          </View>
           {comments.length > 0 ? (
             <View>
-              {comments.map((comment) => (
+              {comments.map((comment, index) => (
                 <View 
                   key={comment.id} 
                   style={{ 
-                    backgroundColor: '#f7f7ff', 
+                    backgroundColor: index % 3 === 0 ? '#f3e3fb' : index % 3 === 1 ? '#e3fbe3' : '#ffe3e3', 
                     borderRadius: 8, 
                     padding: 10, 
                     marginBottom: 8 
@@ -434,15 +530,15 @@ export default function GroupDetailView({ route, navigation }: Props) {
             <View style={{ backgroundColor: '#f7f7ff', borderRadius: 12, padding: 12, marginTop: 8, borderWidth: 1, borderColor: '#bcbcff' }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
                 <Text style={{ color: '#6e7bb7', fontWeight: '600' }}>
-                  {randomMemory.user} commented:
+                  {randomMemory.user_name} commented:
                 </Text>
                 <Text style={{ color: '#bcbcff', fontSize: 12 }}>
                   {getRelativeTime(randomMemory.timestamp)}
                 </Text>
               </View>
-              {randomMemory.movie && (
+              {randomMemory.movie_title && (
                 <Text style={{ color: '#6e7bb7', fontSize: 12, marginBottom: 4 }}>
-                  on {randomMemory.movie}
+                  on {randomMemory.movie_title}
                 </Text>
               )}
               <Text style={{ fontStyle: 'italic', color: '#4b4b7a' }}>
@@ -459,6 +555,80 @@ export default function GroupDetailView({ route, navigation }: Props) {
         </View>
         <View style={{ height: 30 }} />
       </ScrollView>
+
+      {/* Move to Finished Modal */}
+      <Modal
+        visible={showFinishedModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowFinishedModal(false)}
+      >
+        <View style={{ 
+          flex: 1, 
+          backgroundColor: 'rgba(0,0,0,0.5)', 
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <View style={{ 
+            backgroundColor: '#fff', 
+            borderRadius: 20, 
+            padding: 20,
+            width: '85%',
+            maxHeight: '70%'
+          }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontSize: 20, fontWeight: '600', color: '#4b4b7a' }}>Mark as Finished</Text>
+              <TouchableOpacity onPress={() => setShowFinishedModal(false)}>
+                <Ionicons name="close" size={28} color="#6e7bb7" />
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={{ fontSize: 14, color: '#666', marginBottom: 16, textAlign: 'center' }}>
+              Select a movie/show from Currently Watching to mark as finished:
+            </Text>
+
+            <ScrollView>
+              {group?.currently_watching && group.currently_watching.length > 0 ? (
+                group.currently_watching.map((movie) => {
+                  const displayItem = currentlyWatching.find(item => item.id === movie.tmdb_id);
+                  return (
+                    <TouchableOpacity
+                      key={movie.tmdb_id}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        padding: 12,
+                        backgroundColor: '#f7f7ff',
+                        borderRadius: 12,
+                        marginBottom: 12,
+                        borderWidth: 1,
+                        borderColor: '#e3e3f7',
+                      }}
+                      onPress={() => handleMoveToFinished(movie)}
+                    >
+                      <Image 
+                        source={{ uri: getPosterUrl(movie.poster_path) }} 
+                        style={{ width: 50, height: 75, borderRadius: 6, marginRight: 12 }}
+                        resizeMode="cover"
+                      />
+                      <Text style={{ flex: 1, fontSize: 16, fontWeight: '500', color: '#4b4b7a' }}>
+                        {displayItem?.name || displayItem?.title || movie.title}
+                      </Text>
+                      <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                    </TouchableOpacity>
+                  );
+                })
+              ) : (
+                <View style={{ padding: 20, alignItems: 'center' }}>
+                  <Text style={{ color: '#aaa', fontStyle: 'italic' }}>
+                    No movies in Currently Watching
+                  </Text>
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* Add Comment Modal */}
       <Modal
@@ -485,7 +655,6 @@ export default function GroupDetailView({ route, navigation }: Props) {
                   padding: 20,
                   maxHeight: '80%'
                 }}>
-                  {/* Header */}
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                     <Text style={{ fontSize: 20, fontWeight: '600', color: '#4b4b7a' }}>Add Comment</Text>
                     <TouchableOpacity onPress={handleCloseModal}>
@@ -494,7 +663,6 @@ export default function GroupDetailView({ route, navigation }: Props) {
                   </View>
 
                   <ScrollView showsVerticalScrollIndicator={false}>
-                    {/* Select Movie */}
                     <Text style={{ fontWeight: '500', marginBottom: 8, color: '#4b4b7a' }}>
                       Select a movie/show <Text style={{ color: '#aaa' }}>(optional)</Text>
                     </Text>
@@ -548,7 +716,6 @@ export default function GroupDetailView({ route, navigation }: Props) {
                       </View>
                     )}
 
-                    {/* Comment Text */}
                     <Text style={{ fontWeight: '500', marginBottom: 8, color: '#4b4b7a' }}>Your comment</Text>
                     <TextInput
                       style={{
@@ -568,7 +735,6 @@ export default function GroupDetailView({ route, navigation }: Props) {
                       onChangeText={setCommentText}
                     />
 
-                    {/* Submit Button */}
                     <TouchableOpacity
                       style={{
                         backgroundColor: '#bcbcff',

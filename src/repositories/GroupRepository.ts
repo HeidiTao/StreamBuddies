@@ -18,7 +18,6 @@ import { GroupDoc, UserDoc } from '../sample_structs';
 export class GroupRepository {
   private collectionName = 'groups';
 
-  // Subscribe to groups for a specific user
   subscribeToUserGroups(userId: string, callback: (groups: GroupDoc[]) => void): () => void {
     const groupsCollection = collection(db, this.collectionName);
     const q = query(groupsCollection, where('member_ids', 'array-contains', userId));
@@ -37,6 +36,7 @@ export class GroupRepository {
           code: data.code,
           currently_watching: data.currently_watching,
           finished: data.finished,
+          comments: data.comments, // ← Make sure this line exists
           created_at: data.created_at,
           updated_at: data.updated_at,
         });
