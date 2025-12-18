@@ -27,7 +27,11 @@ In the era of streaming, the simple question “What should we watch?” has bec
 1. Git clone the repository to your local machine or run `git pull` to get the updates.
 2. Run `npm install` to install or update dependencies.
 
-**Note:** Currently, API keys are stored in the `.env` in the github repo for easier grading access. For actual development, this `.env` file shall be included in gitignore.
+**Note:** In order for the API functionality to work, you should request your API keys from [TMDB API](https://developer.themoviedb.org/). Once you have the keys, you should create a `.env` file at root to include the keys like: ```
+# TMDB API 
+EXPO_PUBLIC_TMDB_READ_TOKEN = <your_read_token>
+EXPO_PUBLIC_TMDB_API_KEY = <your_api_key>
+```
 
 ## To try out the app!
 3. Run `npm start` to start the server.
